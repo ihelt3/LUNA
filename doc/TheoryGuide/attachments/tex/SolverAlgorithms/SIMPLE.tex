@@ -1,0 +1,187 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% SIMPLE
+\subsection{SIMPLE: Semi-Implicit Method for Pressure Linked Equations}
+
+
+%------------------------------------------------------------------
+\FloatBarrier
+\subsubsection{Theory}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.7\textwidth]{\FigDir SolverAlgorithms/SIMPLE/MeshRelations.PNG}
+\caption{\label{fig:MeshRelations}SIMPLE Algorithm Mesh Relation Terminology}
+\end{figure}
+
+
+%------------------------------------------------------------------
+\FloatBarrier
+\subsubsection{Application}
+
+% * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+\paragraph{Some Common Expressions}
+
+\begin{equation}
+\left.\pdv{p}{x_i}\right|_f n_{i,f} =  \frac{p_{\Nb(f)} - p_o}{\delta_f} + \text{tangential component}
+\end{equation}
+
+\begin{equation}
+\left.\pdv{p}{x_i}\right|_o = \frac{1}{V_o} \sum_{f} p_f A_f n_{i,f}
+\end{equation}
+
+\begin{equation}
+p_f = w_o p_o + (1-w_o) p_1
+\end{equation}
+
+
+
+% * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+\paragraph{Momentum Equation}
+
+The linear system to be solved for the momentum equation is given in eq. \ref{eq:SIMPLE_momentum}
+
+\begin{equation}
+A_o u_o + \sum_{f} A_{\Nb(f)} u_{\Nb(f)} = Q_o \label{eq:SIMPLE_momentum}
+\end{equation}
+
+\noindent where the diagonal elements are given by $A_o$
+
+\begin{equation}
+A_o = \sum_{f} \left( \frac{|\mdotf| + \mdotf}{2} + \frac{\mu_f A_f}{\delta_f} \right)
+\end{equation}
+
+\noindent and the off-diagonal terms are a result of neighboring cells and are defined by the equation below
+
+\begin{equation}
+A_{\Nb(f)} = -\frac{|\mdotf| - \mdotf}{2} - \frac{\mu_f A_f}{\delta_f}
+\end{equation}
+
+The right hand side of the momentum equation is a combination of source terms due to pressure ($S_o$), skew terms due to the unstructured nature of the solver ($S_{\text{skew},o}$), and contributions from boundary faces ($S_{bc}$). 
+
+\begin{equation}
+Q_o = S_o + S_{\text{skew},o} + S_{bc}
+\end{equation}
+
+The skew term is given below. Note that if a pure Cartesian grid is provided to the solver, $\hat{t}_f \cdot \vec{I}_f = 0$, so the skew term goes away.
+
+\begin{equation}
+S_{\text{skew},o} = - \sum_{f} \left( \left[ \frac{u_{a(f)}^* - u_{b(f)}^*}{\delta_f} \right] \hat{t}_f \cdot \vec{I}_f \right) \mu_f
+\end{equation}
+
+In the $S_{\text{skew},o}$ equation above, the $u^*$ terms represent the nodal velocities, which are calculated explicitly using a distance weighted scheme on the cell face velocities:
+
+\begin{equation}
+u^* = w_{i,f}u_{i,o}
+\end{equation}
+
+Equation \ref{eq:SIMPLE_pressureSource} shows the contribution due to the pressure source.
+
+\begin{equation}
+S_o = - \sum_{f} p_f n_{i,f} A_f \label{eq:SIMPLE_pressureSource}
+\end{equation}
+
+The contribution from the boundary faces must also be accounted for in the source terms. Effectively, the boundary face source is due a result of a neighbor cell contribution ($A_{N(f)}$) being moved to the right hand side of the linear system:
+
+\begin{equation}
+S_{bc} = u_{bc} \left( \frac{|\mdotf| - \mdotf}{2} + \frac{\mu_f A_f}{\delta_f} \right)
+\end{equation}
+
+
+
+
+
+% * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+\paragraph{Pressure Correction Equation}
+
+
+The pressure correction is calculated by correcting any mass imbalance into the cells, as given by the equation below. 
+
+\begin{equation}
+\dot{m}_{imb} = \sum_f \rho_f \underbrace{ \left[ w_f \frac{V_o}{A_o\rvert_o} + (1-w_f) \frac{V_1}{A_o \rvert_1} \right] \left( \left.\pdv{p'}{x_i}\right|_f n_{i,f} \right)}_{ u_{i,f}' n_{i,f}'} A_f \label{eq:massConservation}
+\end{equation}
+
+\noindent where $u_{i,f}'$ is the velocity correction and we recall that the pressure gradient can be written as a difference in the cell pressure and neighboring cell pressures:
+
+\begin{equation}
+\left.\pdv{p}{x_i}\right|_f n_{i,f} =  \frac{p_{\Nb(f)} - p_o}{\delta_f} + \text{tangential component} \label{eq:pgrad}
+\end{equation}
+
+The mass imbalance $\dot{m}_{imb}$, is determined by adding all the mass flux sources coming into the cell:
+
+\begin{equation}
+\dot{m}_{imb} = \sum_{f} \mdotf \label{eq:mdotimb}
+\end{equation}
+
+Therefore, by plugging equations \ref{eq:pgrad} and \ref{eq:mdotimb} into eq \ref{eq:massConservation}, we can write the mass imbalance equation in terms of cell pressures, their neighbors, and the mass imbalance
+
+
+\begin{equation}
+A_o^p p_o + \sum_{f} A_{\Nb(f)}^p p_{\Nb(f)} = -\dot{m}_{imb}
+\end{equation}
+
+\noindent where the coefficients are given as
+
+\begin{equation}
+A_o^p = \sum_{f(o)} \left[ w_f \frac{V_o}{A_o\rvert_o} + (1-w_f) \frac{V_1}{A_o\rvert_1} \right] \left( \frac{\rho_f A_f}{\delta_f} \right)
+\end{equation}
+
+\begin{equation}
+A_{\Nb(f)}^p = - \left[ w_f \frac{V_o}{A_o\rvert_o} + (1-w_f) \frac{V_1}{A_o \rvert_1} \right] \frac{\rho_f A_f}{\delta_f}
+\end{equation}
+
+Note that when solving the pressure imbalance equation, the mass imbalance should ultimately reduce to 0, as we are solving for an incompressible flow. Additionally, the pressure correction should ultimately reduce to 0 upon convergence, so it is important to use an initial guess of 0 when solving the pressure correction equation to help with convergence. If a non-zero initial guess is used, the final iteration may have trouble converging.
+
+%Note that the pressure at the boundary must be added as a source to the mass imbalance equation:
+%
+%\begin{equation}
+%p_{N(b),\mathrm{source}} = p_b \left[ w_f \frac{V_o}{A_o\rvert_o} + (1-w_f) \frac{V_1}{A_o \rvert_1} \right] \frac{\rho_f A_f}{\delta_f}
+%\end{equation} 
+
+
+After the pressure has been corrected, a relaxation factor, $\alpha^p_{\mathrm{relax}}$, is applied to help the solver stop from diverging. 
+
+\begin{equation}
+p' = \alpha^p_{\mathrm{relax}}p'
+\end{equation}
+
+The lower the value of $\alpha^p_{\mathrm{relax}}$, the more stable the solution will be. However, the solution will also converge slower with lower $\alpha_{\mathrm{relax}}$. 
+
+
+
+
+% * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+\paragraph{Velocity and Mass Corrections}
+
+
+Corrections for the cell center velocities: 
+\begin{align}
+u_o' &= -\frac{1}{A_o \rvert_o} \left. \pdv{p'}{x_i} \right|_o V_o  \\
+	 &= - \frac{1}{A_o\rvert_o} \sum_{f} p_f' A_f n_{i,f}
+\end{align}
+
+Corrections for the cell face velocities:
+\begin{equation}
+u_f' = - \left[ w_f \frac{V_o}{A_o\rvert_o} + (1-w_f) \frac{V_1}{A_o\rvert_1} \right] \left. \pdv{p'}{x_i} \right|_f
+\end{equation}
+
+Correction to the mass face flux
+\begin{align}
+\mdotf' &= \rho_f A_f  \left( u_i' n_{i,f} \right) \\
+%
+&= - \rho_f A_f \left[ w_f \frac{V_o}{A_o\rvert_o} + (1-w_f) \frac{V_1}{A_o\rvert_1} \right] \left( \pdv{p'}{x_i} n_{i,f} \right) \\
+%
+&= - \rho_f A_f \left[ w_f \frac{V_o}{A_o\rvert_o} + (1-w_f) \frac{V_1}{A_o\rvert_1} \right] \left( \frac{p_{\Nb(f)}' - p_o'}{\delta_f} + S_{\text{tangent}} \right) 
+\end{align}
+
+Note that the source term due to the tangential component component of the mass flux ($S_{\text{tangent}}$) is generally neglected as the mass imbalance will ultimately go to zero. Therefore the final solution will not be impacted by the tangential terms, though the convergence may be negatively affected. 
+
+After all of the correction terms have been collected, they can be added to the original values (after being relaxed) in order to get the cell value for the next iteration:
+
+\begin{align}
+p &= p + p' \\
+u &= u + \alpha^u_{\mathrm{relax}} u' \\
+\mdotf &= \mdotf + \alpha^u_{\mathrm{relax}} \mdotf'
+\end{align}
+
+Note that because the velocity and mass corrections are linearly related, the same relaxation factor is applied to both systems. 
+
