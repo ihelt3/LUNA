@@ -1,10 +1,10 @@
 /*------------------------------------------------------------------------*\
 **  
-**  @file:      squareCavityFlow.cc
+**  @file:      NACA0012.cc
 **
 **  @author:    Isaiah Helt (ihelt@gatech.edu)
 **
-**  @brief:     Example of LUNA2D solver for square cavity flow
+**  @brief:     Example of LUNA2D solver for NACA 0012 airfoil
 **
 \*------------------------------------------------------------------------*/
 
@@ -17,11 +17,13 @@
 #include "writeASCII.hh"
 #include "BoundaryConditions.hh"
 #include "wall.hh"
+#include "inlet.hh"
+#include "outlet.hh"
 
 int main()
 {
     // Load Mesh
-    std::filesystem::path meshFile("squareCavity_unstruct.su2");
+    std::filesystem::path meshFile("NACA_0012.su2");
 
     // Read meshes
     MESH::read_su2 testMesh(meshFile);
@@ -35,11 +37,16 @@ int main()
 
 
     // Set boundary conditions
-    BOUNDARIES::viscousWallBC bottom(simpleSolver,"bottom");
-    BOUNDARIES::viscousWallBC top(simpleSolver,"top");
-    top.set_velocity(MATH::Vector(std::vector<double>{0.1,0.0}));
-    simpleSolver->setBoundaryCondition(std::make_shared<BOUNDARIES::viscousWallBC>(bottom));
-    simpleSolver->setBoundaryCondition(std::make_shared<BOUNDARIES::viscousWallBC>(top));
+    MATH::Vector velocity(std::vector<double>{1.0,0.0});  // m/s
+    BOUNDARIES::inlet inlet(simpleSolver,"inlet",velocity);
+    BOUNDARIES::outlet outlet(simpleSolver,"outlet",0.0);
+    BOUNDARIES::outlet freestream(simpleSolver,"freestream",0.0);
+    BOUNDARIES::viscousWallBC airfoil(simpleSolver,"airfoil");
+
+    simpleSolver->setBoundaryCondition(std::make_shared<BOUNDARIES::inlet>(inlet));
+    simpleSolver->setBoundaryCondition(std::make_shared<BOUNDARIES::outlet>(outlet));
+    simpleSolver->setBoundaryCondition(std::make_shared<BOUNDARIES::outlet>(freestream));
+    simpleSolver->setBoundaryCondition(std::make_shared<BOUNDARIES::viscousWallBC>(airfoil));
 
     // Solve the system
     simpleSolver->iter = 3;

@@ -19,6 +19,7 @@
 #include <unordered_map>
 
 #include "Vector.hh"
+#include "topology.hh"
 
 // Define type enum for element/cell types
 enum elementTypeEnum{

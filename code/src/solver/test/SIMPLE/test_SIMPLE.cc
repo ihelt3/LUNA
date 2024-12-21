@@ -17,6 +17,7 @@
 #include "SIMPLE.hh"
 #include "read_su2.hh"
 #include "mesh.hh"
+#include "wall.hh"
 
 /*------------------------------------------------------------------------*\
 **  Test Fixture
@@ -45,10 +46,10 @@ protected:
         // Construct SIMPLE solver
         simpleSolver = std::make_shared<SOLVER::SIMPLE>(su2Mesh);
 
-        UTILITIES::viscousWallBC testWallLower(simpleSolver,"lower");
-        UTILITIES::viscousWallBC testWallUpper(simpleSolver,"upper");
-        simpleSolver->setBoundaryCondition(std::make_shared<UTILITIES::viscousWallBC>(testWallLower));
-        simpleSolver->setBoundaryCondition(std::make_shared<UTILITIES::viscousWallBC>(testWallUpper));
+        BOUNDARIES::viscousWallBC testWallLower(simpleSolver,"lower");
+        BOUNDARIES::viscousWallBC testWallUpper(simpleSolver,"upper");
+        simpleSolver->setBoundaryCondition(std::make_shared<BOUNDARIES::viscousWallBC>(testWallLower));
+        simpleSolver->setBoundaryCondition(std::make_shared<BOUNDARIES::viscousWallBC>(testWallUpper));
     }
 
     // Node Coordinates

@@ -101,7 +101,7 @@ void POSTPROCESSING::writeASCII::write(std::vector<std::string> components, std:
             int idx = _mesh->get_boundaryIdx(comp);
             int id = _mesh->get_boundaryID(comp);
 
-            std::shared_ptr<UTILITIES::BoundaryCondition> bc =  _solver->get_boundaryCondition(id);
+            std::shared_ptr<BOUNDARIES::BoundaryCondition> bc =  _solver->get_boundaryCondition(id);
             
             // Loop over faces
             for (const auto& f : _mesh->get_boundaries()[idx].get_faces() )
@@ -205,7 +205,7 @@ void POSTPROCESSING::writeASCII::write_faces(std::vector<std::string> components
             int idx = _mesh->get_boundaryIdx(comp);
             int id = _mesh->get_boundaryID(comp);
 
-            std::shared_ptr<UTILITIES::BoundaryCondition> bc =  _solver->get_boundaryCondition(id);
+            std::shared_ptr<BOUNDARIES::BoundaryCondition> bc =  _solver->get_boundaryCondition(id);
             
             // Loop over faces
             for (const auto& f : _mesh->get_boundaries()[idx].get_faces() )

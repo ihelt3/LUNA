@@ -18,6 +18,7 @@
 #include "mesh.hh"
 #include "read_su2.hh"
 #include "BoundaryConditions.hh"
+#include "wall.hh"
 
 class postprocessing_test : public ::testing::Test
 {
@@ -47,11 +48,11 @@ protected:
         solver = std::make_shared<SOLVER::Solver>(su2Mesh);
 
         // Set Boundary conditions
-        UTILITIES::viscousWallBC testWallLower(solver,"lower");
-        UTILITIES::viscousWallBC testWallUpper(solver,"upper");
+        BOUNDARIES::viscousWallBC testWallLower(solver,"lower");
+        BOUNDARIES::viscousWallBC testWallUpper(solver,"upper");
         testWallLower.set_velocity(MATH::Vector(std::vector<double>{1.0,2.0}));
-        solver->setBoundaryCondition(std::make_shared<UTILITIES::viscousWallBC>(testWallLower));
-        solver->setBoundaryCondition(std::make_shared<UTILITIES::viscousWallBC>(testWallUpper));
+        solver->setBoundaryCondition(std::make_shared<BOUNDARIES::viscousWallBC>(testWallLower));
+        solver->setBoundaryCondition(std::make_shared<BOUNDARIES::viscousWallBC>(testWallUpper));
     }
 
 };

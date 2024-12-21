@@ -60,8 +60,10 @@ public:
 
   // Vector &operator/(const double &divisor);
   friend Vector operator/(Vector vector, const double &divisor);
-  
   friend std::ostream &operator<<(std::ostream &out, const Vector &vector);
+
+  // Vector ==operator()
+  bool operator==(const Vector &other) const;
 
 private:
   VectorType _vector;

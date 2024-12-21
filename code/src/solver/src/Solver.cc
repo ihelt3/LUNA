@@ -262,7 +262,7 @@ std::vector<double> SOLVER::Solver::computeFacePressure(std::vector<double> cell
 
 
 // * * * * * * * * * * * * * * Assign boundary conditions * * * * * * * * * * * * * * //
-void SOLVER::Solver::setBoundaryCondition(std::shared_ptr<UTILITIES::BoundaryCondition> bc)
+void SOLVER::Solver::setBoundaryCondition(std::shared_ptr<BOUNDARIES::BoundaryCondition> bc)
 {
     // Make sure solver has not been completed
     assert(!_solved && "Cannot set boundary conditions after solver has already been solved!");

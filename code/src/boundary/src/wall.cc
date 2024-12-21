@@ -1,62 +1,15 @@
 /*------------------------------------------------------------------------*\
 **  
-**  @file:      BoundaryConditions.cc
+**  @file:      wall.cc
 **
 **  @author:    Isaiah Helt (ihelt@gatech.edu)
 **
-**  @brief:     Implementation file of different boundary condition classes
+**  @brief:     Implementation of wall boundary condition
 **
 \*------------------------------------------------------------------------*/
 
 #include "BoundaryConditions.hh"
-#include "Solver.hh"
-#include "cassert"
-
-/*------------------------------------------------------------------------*\
-**  Class Boundary Condition Implementation
-\*------------------------------------------------------------------------*/
-
-// Initialize with solver and name
-UTILITIES::BoundaryCondition::BoundaryCondition(std::weak_ptr<SOLVER::Solver> solver , std::string BCname)
-:
-    _solver(solver),
-    _name(BCname)
-{
-    // Lock weak pointer to create shared pointer
-    auto solverPtr = get_solver();
-
-    // Get Boundary Condition ID from name
-    _bcID = solverPtr->get_mesh()->get_boundaryID(_name);
-    _bcIdx = solverPtr->get_mesh()->get_boundaryIdx(_name);
-}
-
-// Initialize with solver and BC ID
-UTILITIES::BoundaryCondition::BoundaryCondition(std::weak_ptr<SOLVER::Solver> solver , int BCID)
-:
-    _solver(solver),
-    _bcID(BCID)
-{
-    // Lock weak pointer to create shared pointer
-    auto solverPtr = get_solver();
-
-    // Get Boundary Condition name from ID
-    _bcIdx = solverPtr->get_mesh()->get_boundaryIdx(BCID);
-    _name = solverPtr->get_mesh()->get_boundaries()[_bcIdx].get_name();
-    
-}
-
-std::shared_ptr<SOLVER::Solver> UTILITIES::BoundaryCondition::get_solver()
-{
-    // Lock weak pointer to create shared pointer
-    auto solverPtr = _solver.lock();
-
-    if (!solverPtr) {
-        std::cerr << "Error: Solver pointer expired" << std::endl;
-        throw std::runtime_error("Solver pointer expired");
-    }
-
-    return solverPtr;
-}
+#include "wall.hh"
 
 
 /*------------------------------------------------------------------------*\
@@ -65,9 +18,9 @@ std::shared_ptr<SOLVER::Solver> UTILITIES::BoundaryCondition::get_solver()
 
 // * * * * * * * * * * * * * *  Constructors * * * * * * * * * * * * * * * //
 // Construct with BC copy constructor
-UTILITIES::viscousWallBC::viscousWallBC(std::weak_ptr<SOLVER::Solver> solver , std::string BCname)
+BOUNDARIES::viscousWallBC::viscousWallBC(std::weak_ptr<SOLVER::Solver> solver , std::string BCname)
 : 
-    UTILITIES::BoundaryCondition(solver, BCname)
+    BOUNDARIES::BoundaryCondition(solver, BCname)
 { 
     // Lock weak pointer to create shared pointer
     auto solverPtr = get_solver();
@@ -75,9 +28,9 @@ UTILITIES::viscousWallBC::viscousWallBC(std::weak_ptr<SOLVER::Solver> solver , s
     _velocity = MATH::Vector(solverPtr->get_mesh()->get_dimension(), 0.0); 
 };
 // Construct with name, faces vector and ID
-UTILITIES::viscousWallBC::viscousWallBC(std::weak_ptr<SOLVER::Solver> solver , int BCID)
+BOUNDARIES::viscousWallBC::viscousWallBC(std::weak_ptr<SOLVER::Solver> solver , int BCID)
 : 
-    UTILITIES::BoundaryCondition(solver, BCID) 
+    BOUNDARIES::BoundaryCondition(solver, BCID) 
 { 
     // Lock weak pointer to create shared pointer
     auto solverPtr = get_solver();
@@ -86,13 +39,13 @@ UTILITIES::viscousWallBC::viscousWallBC(std::weak_ptr<SOLVER::Solver> solver , i
 };
 
 // * * * * * * * * * * * * * *  Check if BC is complete * * * * * * * * * * * * * * * //
-bool UTILITIES::viscousWallBC::isComplete()
+bool BOUNDARIES::viscousWallBC::isComplete()
 {
     return true;
 }
 
 // * * * * * * * * * * * * * *  Get Pressure for specific face * * * * * * * * * * * * * * * //
-double UTILITIES::viscousWallBC::get_pressure(int globalFaceIdx)
+double BOUNDARIES::viscousWallBC::get_pressure(int globalFaceIdx)
 {
     // Lock weak pointer to create shared pointer
     auto solverPtr = get_solver();
@@ -108,7 +61,7 @@ double UTILITIES::viscousWallBC::get_pressure(int globalFaceIdx)
 }
 
 // * * * * * * * * * * * * * *  Get Velocity for specific face * * * * * * * * * * * * * * * //
-MATH::Vector UTILITIES::viscousWallBC::get_velocity(int globalFaceIdx)
+MATH::Vector BOUNDARIES::viscousWallBC::get_velocity(int globalFaceIdx)
 {
     auto solverPtr = get_solver();
 
@@ -119,7 +72,7 @@ MATH::Vector UTILITIES::viscousWallBC::get_velocity(int globalFaceIdx)
 }
 
 // * * * * * * * * * * * * * *  Get Mass Flux * * * * * * * * * * * * * * * //
-double UTILITIES::viscousWallBC::get_massFlux(int globalFaceIdx)
+double BOUNDARIES::viscousWallBC::get_massFlux(int globalFaceIdx)
 {
     // Lock weak pointer to create shared pointer
     auto solverPtr = get_solver();

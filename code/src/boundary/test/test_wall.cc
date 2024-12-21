@@ -1,16 +1,12 @@
 /*------------------------------------------------------------------------*\
 **  
-**  @file:      test_BoundaryConditions.cc
+**  @file:      test_wall.cc
 **
 **  @author:    Isaiah Helt (ihelt@gatech.edu)
 **
-**  @brief:     Unit tests for Boundary Condiitons classes
+**  @brief:     Unit test for wall boundary condition
 **
 \*------------------------------------------------------------------------*/
-
-#include <vector>
-#include <filesystem>
-#include <memory>
 
 #include "gtest/gtest.h"
 #include "Solver.hh"
@@ -18,6 +14,8 @@
 #include "mesh.hh"
 #include "read_su2.hh"
 #include "Vector.hh"
+#include "wall.hh"
+
 
 class test_BCs : public ::testing::Test 
 {
@@ -51,14 +49,9 @@ public:
 };
 
 
-
-/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\
-** TEST WALL BC
-\* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
-
 // * * * * * * * * * * * * test test setting velocity * * * * * * * * * * * * * * //
 TEST_F(test_BCs, testWallVelocity) {
-    UTILITIES::viscousWallBC testWall(solver,"lower");
+    BOUNDARIES::viscousWallBC testWall(solver,"lower");
 
     std::cout << "Testing Wall Velocity" << std::endl;
     MATH::Vector vel(std::vector<double>{1.0,0.0});

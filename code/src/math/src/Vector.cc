@@ -7,17 +7,8 @@
 **  @brief:     implementation file for Vector class
 **
 \*------------------------------------------------------------------------*/
-/*
-Copyright 2023 Tom-Robin Teschner (cfd.university)
 
-Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the “Software”), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
-
-#include "../include/Vector.hh"
+#include "Vector.hh"
 
 namespace MATH {
 
@@ -124,21 +115,6 @@ const double &Vector::operator[](unsigned index) const {
   return _vector[index];
 }
 
-/**
- * @brief Element-wise multiplication of a Vector with a scalar
- *
- * @details The result is a Vector with the same size as the operand, where each element
- * is the product of the corresponding element of the operand and the scalar.
- *
- * @param scaleFactor The scalar to multiply with
- *
- * @return The result of the element-wise multiplication
- */
-// Vector &Vector::operator*(const double &scaleFactor) {
-//   for (unsigned index = 0; index < _vector.size(); ++index)
-//     _vector[index] *= scaleFactor;
-//   return *this;
-// }
 
 /**
  * @brief Computes the dot product between two Vectors
@@ -183,22 +159,6 @@ Vector operator*(Vector vector, const double &scaleFactor) {
   return vector;
 }
 
-// Vector operator*(Vector vector, const double &scaleFactor) {
-//   for (unsigned index = 0; index < vector.size(); ++index)
-//   {
-//     vector[index] *= scaleFactor;
-//   }
-//   return vector;
-// }
-
-
-// This division modifies the current vector
-// USAGE: vector = vector / divisor
-// Vector &Vector::operator/(const double &divisor) {
-//   for (unsigned index = 0; index < _vector.size(); ++index)
-//     _vector[index] /= divisor;
-//   return *this;
-// }
 
 // Whereas this division does not modify the current vector
 // USAGE: vector2 = vector1 / divisor
@@ -215,5 +175,15 @@ std::ostream &operator<<(std::ostream &out, const Vector &vector) {
   out << ")";
   return out;
 }
+
+bool Vector::operator==(const Vector &other) const {
+  if (_vector.size() != other._vector.size())
+    return false;
+
+  for (unsigned index = 0; index < _vector.size(); ++index)
+    if (_vector[index] != other._vector[index])
+      return false;
+  return true;
+};
 
 } // namespace MATH

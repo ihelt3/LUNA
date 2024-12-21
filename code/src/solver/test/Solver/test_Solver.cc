@@ -18,6 +18,7 @@
 #include "read_su2.hh"
 #include "mesh.hh"
 #include "BoundaryConditions.hh"
+#include "wall.hh"
 
 /*------------------------------------------------------------------------*\
 **  Test Fixture
@@ -126,21 +127,21 @@ TEST_F(solver_test, test_set_BC)
 {
     // - - - - - - - - - - - - - - - - Incomplete Boundaries - - - - - - - - - - - - - - - - //
     // Arrange
-    UTILITIES::viscousWallBC bc1(solver,"lower");
+    BOUNDARIES::viscousWallBC bc1(solver,"lower");
 
     // Act
-    solver->setBoundaryCondition(std::make_shared<UTILITIES::viscousWallBC>(bc1));
+    solver->setBoundaryCondition(std::make_shared<BOUNDARIES::viscousWallBC>(bc1));
     
     // Assert
     EXPECT_FALSE(solver->checkBoundaryConditions());
 
     // - - - - - - - - - - - - - - - - Complete Boundaries - - - - - - - - - - - - - - - - //
     // Arrange
-    UTILITIES::viscousWallBC bc2(solver,"upper");
+    BOUNDARIES::viscousWallBC bc2(solver,"upper");
     bc2.set_velocity(MATH::Vector(std::vector<double>{2.0,0.0}));
 
     // Act
-    solver->setBoundaryCondition(std::make_shared<UTILITIES::viscousWallBC>(bc2));
+    solver->setBoundaryCondition(std::make_shared<BOUNDARIES::viscousWallBC>(bc2));
 
     // Assert
     EXPECT_TRUE(solver->checkBoundaryConditions());
@@ -229,10 +230,10 @@ TEST_F(solver_test, testNodeValues)
     // Trivial double case
 
     // Arrange
-    UTILITIES::viscousWallBC testWallLower(solver,"lower");
-    UTILITIES::viscousWallBC testWallUpper(solver,"upper");
-    solver->setBoundaryCondition(std::make_shared<UTILITIES::viscousWallBC>(testWallLower));
-    solver->setBoundaryCondition(std::make_shared<UTILITIES::viscousWallBC>(testWallUpper));
+    BOUNDARIES::viscousWallBC testWallLower(solver,"lower");
+    BOUNDARIES::viscousWallBC testWallUpper(solver,"upper");
+    solver->setBoundaryCondition(std::make_shared<BOUNDARIES::viscousWallBC>(testWallLower));
+    solver->setBoundaryCondition(std::make_shared<BOUNDARIES::viscousWallBC>(testWallUpper));
 
     // Act
     std::cout << "Computing nodal values...";
@@ -285,10 +286,10 @@ TEST_F(solver_test, testPressureFaces)
 {
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // Trivial case
-    UTILITIES::viscousWallBC testWallLower(solver,"lower");
-    UTILITIES::viscousWallBC testWallUpper(solver,"upper");
-    solver->setBoundaryCondition(std::make_shared<UTILITIES::viscousWallBC>(testWallLower));
-    solver->setBoundaryCondition(std::make_shared<UTILITIES::viscousWallBC>(testWallUpper));
+    BOUNDARIES::viscousWallBC testWallLower(solver,"lower");
+    BOUNDARIES::viscousWallBC testWallUpper(solver,"upper");
+    solver->setBoundaryCondition(std::make_shared<BOUNDARIES::viscousWallBC>(testWallLower));
+    solver->setBoundaryCondition(std::make_shared<BOUNDARIES::viscousWallBC>(testWallUpper));
 
     // Arrange
 

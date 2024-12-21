@@ -260,6 +260,7 @@ void SOLVER::SIMPLE::updateMomentumMatrix()
         cell = _mesh->get_elements()[c];
         // Loop through neighbor elements
         for (int nb=0 ; nb<cell.get_faces().size() ; nb++ ) {
+
             // Get mass flux INTO face
             faceidx = cell.get_faces()[nb].get_id(); 
             // boundary or not doesn't matter, that should be accounted for in calculation of mass flux field (Mass flux INTO cell)
@@ -267,9 +268,11 @@ void SOLVER::SIMPLE::updateMomentumMatrix()
 
             // Calculate cell neighbor coefficient if the neighbor is not a boundary
             nbidx = cell.get_faces()[nb].get_elements()[0];
+            
             if (nbidx >= 0) 
             // Internal Element
             {
+
                 // Neighbor cell
                 cellnb = _mesh->get_elements()[nbidx];
 

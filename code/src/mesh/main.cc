@@ -31,7 +31,7 @@ int main() {
     // std::vector<std::vector<int>> grid[nx][ny][nz];
 
     // auto testMeshFile = std::filesystem::path("../solver/test/SIMPLE/meshes/testMesh.su2");
-    auto testMeshFile = std::filesystem::path("./test/su2/meshes/square_spacing5e-3.su2");
+auto testMeshFile = std::filesystem::path("./test/su2/meshes/square_spacing5e-3.su2");
     // auto testMeshFile = std::filesystem::path("../../Examples/SquareCavityFlow/squareCavity_unstruct.su2");
     MESH::read_su2 test_read_su2(testMeshFile);
 

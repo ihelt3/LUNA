@@ -68,31 +68,25 @@ void MESH::mesh_entity::initialize() {
 std::vector<std::vector<MESH::node>> MESH::mesh_entity::returnQuadDiags(std::vector<node> nodes)
 {
     assert(nodes.size() == 4 && "Expected 4 nodes in vector to get quadrilateral diagonals");
-    double maxL = -1.0;
-    double L;
-    std::vector<int> crossIdxs;
-    std::vector<std::vector<node>> diags;
-
-
-    for (int n=0 ; n<nodes.size()-1 ; n++) {
-        for (int nn=n+1 ; nn<nodes.size() ; nn++) {
-            L = nodes[n]*nodes[nn];
-            if (L > maxL) {
-                maxL = L;
-                crossIdxs = {n,nn};
-            }
-        }
+    
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // Implement gift wrapping algorithm (or Jarvis march) to find all sides
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    // Put node coordinates in vector
+    std::vector<MATH::Vector> coords;
+    for (int i=0 ; i<nodes.size() ; i++) {
+        coords.push_back(nodes[i].get_coordinates());
     }
-    // The longer diagonal 
-    diags = {{nodes[crossIdxs[0]],nodes[crossIdxs[1]]}};
 
-    // Now get the shorter diagonal
-    for (int n=0 ; n<nodes.size() ; n++) {
-        if (n != crossIdxs[0] && n != crossIdxs[1]) {
-            crossIdxs.push_back(n);
-        }
-    }
-    diags.push_back({nodes[crossIdxs[2]],nodes[crossIdxs[3]]});
+    // Get node order using Jarvis March
+    std::vector<int> order = MATH::jarvis_march(coords);
+
+    std::ostringstream error_msg;
+    error_msg << "Error obtaining convex hull of quadrilateral on element" << _id;
+    assert(order.size() == 4 && error_msg.str().c_str());
+
+    std::vector<std::vector<node>> diags = { {nodes[order[0]],nodes[order[2]]} , {nodes[order[1]],nodes[order[3]]} };
+
     return diags;
 }
 

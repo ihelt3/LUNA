@@ -18,7 +18,7 @@
 #include "Vector.hh"
 
 // Forward Declarations for circular inclusions
-namespace UTILITIES {
+namespace BOUNDARIES {
     class BoundaryCondition;
 }
 
@@ -57,7 +57,7 @@ protected:
         // Flag if the system has been solved or not
         bool _solved = false;
         // Boundary Conditions Vector (Use smart pointers to allow polymorphism, Solver owns boundary conditions -> boundary conditions use weak pointers)
-        std::unordered_map<int, std::shared_ptr<UTILITIES::BoundaryCondition>> _BCs;
+        std::unordered_map<int, std::shared_ptr<BOUNDARIES::BoundaryCondition>> _BCs;
         
         // CONSTANTS
             // dynamic viscosity
@@ -107,7 +107,7 @@ public:
         std::vector<MATH::Vector> computeNodalVector(UTILITIES::field<MATH::Vector>);
         std::vector<double> computeNodalScalar(UTILITIES::field<double>);
         // Set Boundary Conditions
-        void setBoundaryCondition(std::shared_ptr<UTILITIES::BoundaryCondition> bc);
+        void setBoundaryCondition(std::shared_ptr<BOUNDARIES::BoundaryCondition> bc);
         // Check if all boundary conditions are complete
         bool checkBoundaryConditions();
         // Get density
@@ -117,7 +117,7 @@ public:
         // get mesh
         const std::shared_ptr<MESH::mesh> get_mesh() const { return _mesh; };
         // Get boundary conditions
-        std::shared_ptr<UTILITIES::BoundaryCondition> get_boundaryCondition(int idx) { return _BCs[idx]; };
+        std::shared_ptr<BOUNDARIES::BoundaryCondition> get_boundaryCondition(int idx) { return _BCs[idx]; };
         // get face normal deltas
         const std::vector<double> get_faceNormalDeltas() const { return _faceNormalDeltas; };
         // get cell pressure field
