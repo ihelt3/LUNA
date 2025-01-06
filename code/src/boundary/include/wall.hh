@@ -7,6 +7,7 @@
 **  @brief:     Header for wall boundary condition
 **
 \*------------------------------------------------------------------------*/
+
 #ifndef _WALL_HH_
 #define _WALL_HH_
 

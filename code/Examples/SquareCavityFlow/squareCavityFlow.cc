@@ -21,7 +21,7 @@
 int main()
 {
     // Load Mesh
-    std::filesystem::path meshFile("squareCavity_unstruct.su2");
+    std::filesystem::path meshFile("squareCavity_dense.su2");
 
     // Read meshes
     MESH::read_su2 testMesh(meshFile);
@@ -42,7 +42,7 @@ int main()
     simpleSolver->setBoundaryCondition(std::make_shared<BOUNDARIES::viscousWallBC>(top));
 
     // Solve the system
-    simpleSolver->iter = 3;
+    simpleSolver->iter = 200;
     simpleSolver->solve();
     std::cout << "Solver Complete" << std::endl;
 

@@ -76,7 +76,8 @@ void SOLVER::SIMPLE::solve()
         std::cout << "  Calculating face mass flux..." << std::endl;
         computeFaceMassFlux();
 
-        if ( i <= 1 ) {
+        // TEMPORARY CODE: Checking pressure correction
+        if ( i <= 1000 ) {
         // Solving pressure correction
         std::cout << "Solving Pressure Correction..." << std::endl;
         SolvePressureCorrection();
@@ -699,8 +700,6 @@ bool SOLVER::SIMPLE::checkConvergence()
 {
     double presid = _pressureCorrection.getL2Norm();
     MATH::Vector v_resid = _cellVelocityField.get_residual();
-    std::cout << v_resid << std::endl;
-
 
     // Output convergences
     std::cout << "Pressure correction convergence: " << _pressureCorrection.getL2Norm() << std::endl;

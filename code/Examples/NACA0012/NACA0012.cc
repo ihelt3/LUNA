@@ -40,16 +40,16 @@ int main()
     MATH::Vector velocity(std::vector<double>{1.0,0.0});  // m/s
     BOUNDARIES::inlet inlet(simpleSolver,"inlet",velocity);
     BOUNDARIES::outlet outlet(simpleSolver,"outlet",0.0);
-    BOUNDARIES::outlet freestream(simpleSolver,"freestream",0.0);
+    BOUNDARIES::outlet farfield(simpleSolver,"farfield",0.0);
     BOUNDARIES::viscousWallBC airfoil(simpleSolver,"airfoil");
 
     simpleSolver->setBoundaryCondition(std::make_shared<BOUNDARIES::inlet>(inlet));
     simpleSolver->setBoundaryCondition(std::make_shared<BOUNDARIES::outlet>(outlet));
-    simpleSolver->setBoundaryCondition(std::make_shared<BOUNDARIES::outlet>(freestream));
+    simpleSolver->setBoundaryCondition(std::make_shared<BOUNDARIES::outlet>(farfield));
     simpleSolver->setBoundaryCondition(std::make_shared<BOUNDARIES::viscousWallBC>(airfoil));
 
     // Solve the system
-    simpleSolver->iter = 3;
+    simpleSolver->iter = 1;
     simpleSolver->solve();
     std::cout << "Solver Complete" << std::endl;
 

@@ -67,7 +67,7 @@ protected:
             // Velocity Relaxation
             double _urelax = 0.1;
             // Pressure Relaxation
-            double _prelax = 0.15;
+            double _prelax = 0.0015;
 
         // Linear Solver
         // MATH::linear_solver_base<MATH::matrixCSR> _linearSolver;

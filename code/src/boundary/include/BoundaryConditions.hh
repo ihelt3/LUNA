@@ -7,6 +7,7 @@
 **  @brief:     Header file of different boundary condition classes
 **
 \*------------------------------------------------------------------------*/
+
 #ifndef _BOUNDARYCONDITIONS_HH_
 #define _BOUNDARYCONDITIONS_HH_
 

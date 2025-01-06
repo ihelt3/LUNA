@@ -69,9 +69,6 @@ std::vector<std::vector<MESH::node>> MESH::mesh_entity::returnQuadDiags(std::vec
 {
     assert(nodes.size() == 4 && "Expected 4 nodes in vector to get quadrilateral diagonals");
     
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // Implement gift wrapping algorithm (or Jarvis march) to find all sides
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // Put node coordinates in vector
     std::vector<MATH::Vector> coords;
     for (int i=0 ; i<nodes.size() ; i++) {
