@@ -24,6 +24,8 @@
 
 // * * * * * * * * * * * * * *  Constructors * * * * * * * * * * * * * * * //
 
+// Construct from node IDs
+//    NOTE: This constructor requires the initialize method to be used after instantiation and node vector is added
 MESH::mesh_entity::mesh_entity(int id,elementTypeEnum elementType, std::vector<int> nodeIDs, bool subElement)
 :
     _id(id),
@@ -36,6 +38,7 @@ MESH::mesh_entity::mesh_entity(int id,elementTypeEnum elementType, std::vector<i
 
 }
 
+// Construct from node vector
 MESH::mesh_entity::mesh_entity(int id, elementTypeEnum elementType, std::vector<node> nodes, bool subElement)
 :
     _id(id),
@@ -99,23 +102,37 @@ double MESH::mesh_entity::triArea(std::vector<node> nodes)
     return std::sqrt(s*(s-a)*(s-b)*(s-c));
 }
 
+// * * * * * * * * * * * * * *  2D Area * * * * * * * * * * * * * * * //
+
 // * * * * * * * * * * * * * *  calculateVolume * * * * * * * * * * * * * * * //
 void MESH::mesh_entity::calculateVolume() 
 {
     // LINE Volume = Length
-    if (_elementType == elementTypeEnum::LINE) {
+    if ( type2dimension[_elementType] == 1 ) {
         _volume = _nodes[0]*_nodes[1];
     }
-    // TRIANGLE Volume = Area
-    if (_elementType == elementTypeEnum::TRIANGLE) {
-        _volume = triArea(_nodes);
+
+    // Generalized approach for 2D elements
+    else if ( type2dimension[_elementType] == 2 ) {
+        // Use Jarvis March to get convex hull
+        std::vector<MATH::Vector> coords;
+        for (int i=0 ; i<_nodes.size() ; i++) {
+            coords.push_back(_nodes[i].get_coordinates());
+        }
+        std::vector<int> order = MATH::jarvis_march(coords);
+
+        // Use element order to calculate area
+        _volume = 0.0;
+        for (int i=0 ; i<order.size()-2 ; i++) {
+            _volume += triArea( {_nodes[order[0]],_nodes[order[i+1]],_nodes[order[i+2]]} );
+        }
+
     }
-    // QUADRILATERAL Volume = Area
-    if (_elementType == elementTypeEnum::QUADRILATERAL) {
-        std::vector<std::vector<node>> diags = returnQuadDiags(_nodes);
-        // Generalized area of a quadrilateral is calculating the area of the two triangles that make it
-        _volume = triArea({diags[0][0],diags[0][1],diags[1][0]}) + triArea({diags[0][0],diags[0][1],diags[1][1]});
+
+    else if ( type2dimension[_elementType] == 3 ) {
+        std::cerr << "3D elements volume calculations not yet supported" << std::endl;
     }
+
 }
 
 // * * * * * * * * * * * * * * Calculate Cell Centroid * * * * * * * * * * * * * * * //
@@ -229,14 +246,18 @@ MESH::element::element(int id, elementTypeEnum elementType, std::vector<node> no
 // Initializer of element class
 void MESH::element::initialize() {
 
-    // Calculate volume and centroid
-    calculateVolume();
+    // Calculate cell centroid 
     calculateCentroid();
 
-    // Get subelements
+    // Get faces and distance weights
     determineSubElements();
     calculateOutwardNormals();
+
+    // Calculate volume and centroid
+    calculateVolume();
     
+
+    // Hashing for element comparison
     hash();
 }
 
@@ -244,36 +265,36 @@ void MESH::element::initialize() {
 // return sub elements of a given element
 void MESH::element::determineSubElements()
 {
-    // LINE has no sub elements
-    if (_elementType == elementTypeEnum::LINE) _faces = {};
-    // TRIANGLE has 3 LINE subelements
-    else if (_elementType == elementTypeEnum::TRIANGLE) {
-        for (int e=0; e<3 ; e++) {
+    // 1D ELEMENT IMPLEMENTATION
+    if ( type2dimension[_elementType] == 1 ) _faces = {};
+
+    // 2D ELEMENT IMPLEMENTATION
+    else if ( type2dimension[_elementType] == 2 ) {
+
+        // First, get order of nodes from Jarvis March
+        std::vector<MATH::Vector> coords;
+        for (int i=0 ; i<_nodes.size() ; i++) {
+            coords.push_back(_nodes[i].get_coordinates());
+        }
+        std::vector<int> order = MATH::jarvis_march(coords);
+
+        // Now that we have our order, define our sub_elements
+        for (int e=0; e<_nodes.size() ; e++) {
             // get list of nodes that make up element
-            std::vector<node> nodes{_nodes[e],_nodes[(e+1) % 3]}; 
+            std::vector<node> nodes{ _nodes[order[e]] , _nodes[order[(e+1) % _nodes.size()]]}; 
             // Create sub element
-            face subElement(e, elementTypeEnum::LINE, nodes);
+            face subElement(-1, elementTypeEnum::LINE, nodes);
             _faces.push_back(subElement);
         }
     }
-    // QUADRILATERAL has 4 LINE subelements
-    else if (_elementType == elementTypeEnum::QUADRILATERAL) {
-        std::vector<std::vector<node>> diags = returnQuadDiags(_nodes);
 
-        // Now that we have our cross nodes, define our elements
-        std::vector<node> line1{diags[0][0],diags[1][0]};
-        std::vector<node> line2{diags[0][1],diags[1][1]};
-        std::vector<node> line3{diags[0][0],diags[1][1]};
-        std::vector<node> line4{diags[0][1],diags[1][0]};
-
-        face subLine1(-1,elementTypeEnum::LINE,line1);
-        face subLine2(-1,elementTypeEnum::LINE,line2);
-        face subLine3(-1,elementTypeEnum::LINE,line3);
-        face subLine4(-1,elementTypeEnum::LINE,line4);
-        _faces = {subLine1,subLine2,subLine3,subLine4};
-    }
-    else {
+    // 3D ELEMENT IMPLEMENTATION
+    else if ( type2dimension[_elementType] == 3 ) {
         std::cerr << "ERROR: 3D elements not yet implemented. Element Type: " << _elementType << std::endl;
+    }
+
+    else {
+        std::cerr << "ERROR: Element type not implemented. Element Type: " << _elementType << std::endl;
     }
 
     // resize distance weighted vector to size of subelements

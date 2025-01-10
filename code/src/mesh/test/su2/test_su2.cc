@@ -78,8 +78,8 @@ protected:
 
     // Connectivity Test (BC connectivity = -BC idx - 1 )
     std::vector<std::vector<std::vector<int>>> element_connectivity {
-        { {-1,1,-4} , {2,4,0} , {-1,3,1} , {-2,6,2} , {1,5,-4} , {6,-3,4} , {3,7,5} , {-2,-3,6} },
-        { {-1,3,-4,1} , {-1,2,0} , {-2,5,1} , {0,4,-4} , {5,-3,3} , {2,6,4} , {-2,-3,5}}
+        { {-1,1,-4} , {0,2,4} , {-1,3,1} , {2,-2,6} , {1,5,-4} , {4,6,-3} , {3,7,5} , {6,-2,-3} },
+        { {-1,1,3,-4} , {-1,2,0} , {1,-2,5} , {0,4,-4} , {3,5,-3} , {2,6,4} , {5,-2,-3}}
     };
 
     // Element Normal tests
@@ -87,30 +87,30 @@ protected:
     std::vector<std::vector<std::vector<std::vector<double>>>> element_normals {
         { 
             {{0.0,-1.0} , {s2,s2} , {-1.0,0.0}}, 
-            {{1.0,0.0} , {0.0,1.0} , {-s2,-s2}},
+            {{-s2,-s2} , {1.0,0.0} , {0.0,1.0}},
             {{0.0,-1.0} , {s2,s2} , {-1.0,0.0}},
-            {{1.0,0.0} , {0.0,1.0} , {-s2,-s2}},
+            {{-s2,-s2} , {1.0,0.0} , {0.0,1.0}},
             {{0.0,-1.0} , {s2,s2} , {-1.0,0.0}},
-            {{1.0,0.0} , {0.0,1.0} , {-s2,-s2}}, 
+            {{-s2,-s2} , {1.0,0.0} , {0.0,1.0}}, 
             {{0.0,-1.0} , {s2,s2} , {-1.0,0.0}},
-            {{1.0,0.0} , {0.0,1.0} , {-s2,-s2}}
+            {{-s2,-s2} , {1.0,0.0} , {0.0,1.0}}
         } ,
         {
-            {{0.0,-1.0} , {0.0,1.0} , {-1.0,0.0},{1.0,0.0}},
+            {{0.0,-1.0} , {1.0,0.0} , {0.0,1.0}, {-1.0,0.0}},
             {{0.0,-1.0} , {s2,s2} , {-1.0,0.0}},
-            {{1.0,0.0} , {0.0,1.0} , {-s2,-s2}},
+            {{-s2,-s2} , {1.0,0.0} , {0.0,1.0}},
             {{0.0,-1.0} , {s2,s2} , {-1.0,0.0}},
-            {{1.0,0.0} , {0.0,1.0} , {-s2,-s2}}, 
+            {{-s2,-s2} , {1.0,0.0} , {0.0,1.0}}, 
             {{0.0,-1.0} , {s2,s2} , {-1.0,0.0}},
-            {{1.0,0.0} , {0.0,1.0} , {-s2,-s2}}
+            {{-s2,-s2} , {1.0,0.0} , {0.0,1.0}}
         }
     };
 
     // Element Distance Weight
     std::vector<std::vector<std::vector<double>>> element_distanceWeight {
         {
-            { {-1,0.5,-1} , {0.5,0.5,0.5} , {-1,0.5,0.5} , {-1,0.5,0.5} , {0.5,0.5,-1} , {0.5,-1,0.5} , {0.5,0.5,0.5} , {-1,-1,0.5} },
-            { {-1,0.42705,-1,0.42705} , {-1,0.5,0.572949} , {-1,0.5,0.5} , {0.572949,0.5,-1} , {0.5,-1,0.5} , {0.5,0.5,0.5} , {-1,-1,0.5} }
+            { {-1,0.5,-1} , {0.5,0.5,0.5} , {-1,0.5,0.5} , {0.5,-1,0.5} , {0.5,0.5,-1} , {0.5,0.5,-1} , {0.5,0.5,0.5} , {0.5,-1,-1} },
+            { {-1,0.42705,0.42705,-1} , {-1,0.5,0.572949} , {0.5,-1,0.5} , {0.572949,0.5,-1} , {0.5,0.5,-1} , {0.5,0.5,0.5} , {0.5,-1,-1} }
         }
     };
 
@@ -118,18 +118,25 @@ protected:
     std::vector<std::vector<std::vector<int>>> face_connectivity {
         //cell 0                           cell 1           cell 2           cell 3            cell 4           cell 5           cell 6            cell 7
         { {0,-1} , {0,1} , {0,-4}        , {1,2}  , {1,4} , {2,-1} , {2,3} , {3,-2} , {3,6}  , {4,5} , {4,-4} , {5,6} , {5,-3} , {6,7} ,           {7,-2} , {7,-3}} , 
-        { {0,-1} , {0,3} , {0,-4}, {0,1} , {1,-1} , {1,2} , {2,-2} , {2,5} , {3,4}  , {3,-4} , {4,5} , {4,-3} , {5,6} ,          {6,-2} , {6,-3}                  }
+        { {0,-1} , {0,1} , {0,3}, {0,-4} , {1,-1} , {1,2} , {2,-2} , {2,5} , {3,4}  , {3,-4} , {4,5} , {4,-3} , {5,6} ,          {6,-2} , {6,-3}                  }
     };
 
     std::vector<std::vector<bool>> face_isBoundary {
         { true, false, true,               false, false,    true, false,      true, false,     false, true,     false, true,     false,            true, true } ,
-        { true, false, true, false,        true, false,     true, false,      false, true,     false, true,     false,           true,    true}
+        { true, false, false, true,        true, false,     true, false,      false, true,     false, true,     false,           true,    true}
     };
 
     // Check element faces are assigned
     std::vector<std::vector<std::vector<int>>> element_faceIDs {
-        { {0,1,2} , {3,4,1} , {5,6,3} , {7,8,6} , {4,9,10} , {11,12,9} , {8,13,11} , {14,15,13} },
-        { {0,1,2,3}         , {4,5,3} , {6,7,5} , {1,8,9} , {10,11,8} , {7,12,10} , {13,14,12} }
+        { {0,1,2} , {1,3,4} , {5,6,3} , {6,7,8} , {4,9,10} , {9,11,12} , {8,13,11} , {13,14,15} },
+        { {0,1,2,3}         , {4,5,1} , {5,6,7} , {2,8,9} , {8,10,11} , {7,12,10} , {12,13,14} }
+    };
+
+    // Check element volumes
+    double p5_3 = pow(0.5,3);
+    std::vector< std::vector<double>> element_volumes {
+        {p5_3,p5_3,p5_3,p5_3,p5_3,p5_3,p5_3,p5_3},
+        {pow(0.5,2),p5_3,p5_3,p5_3,p5_3,p5_3,p5_3}
     };
 
 };
@@ -177,10 +184,15 @@ TEST_F(read_su2_mesh_test, readElements)
         }
         // Check element face connectivites
         for (int element=0 ; element<elements.size() ; element++){
+            std::cout << "Element: " << element << std::endl;
             for (int face=0 ; face<elements[element].get_faces().size() ; face++){
                 // Check the face has the correct ID
                 ASSERT_EQ(elements[element].get_faces()[face].get_id(), element_faceIDs[i][element][face]);
             }
+        }
+        // Check element volumes
+        for (int element=0 ; element<elements.size() ; element++){
+            ASSERT_DOUBLE_EQ(elements[element].get_volume(), element_volumes[i][element]);
         }
     }
 }

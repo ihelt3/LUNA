@@ -33,6 +33,17 @@ enum elementTypeEnum{
     PYRAMID
 };
 
+// Map Element Type to dimension (external linkage)
+inline std::unordered_map<elementTypeEnum, int> type2dimension = {
+    {elementTypeEnum::LINE, 1},
+    {elementTypeEnum::TRIANGLE, 2},
+    {elementTypeEnum::QUADRILATERAL, 2},
+    {elementTypeEnum::TETRAHEDRAL, 3},
+    {elementTypeEnum::HEXAHEDRAL, 3},
+    {elementTypeEnum::PRISM, 3},
+    {elementTypeEnum::PYRAMID, 3}
+};
+
 // Enum for each element type
 enum class numberOfNodes {
     INVALID=0,
