@@ -1,0 +1,19 @@
+\subsection{Reynolds-Averaged Navier Stokes (RANS) Models}
+
+Reynolds-Averaged Navier Stokes models are based on either solving for the mean flow using the eddy viscosity hypothesis, or close the Reynolds stress tensors, $u_iu_j$. At the moment, LUNA only implements eddy viscosity models. 
+
+The turbulent viscosity hypothesis, or eddy viscosity hypothesis, assumes that the turbulent effects can be modeled via a dissipative eddy viscosity term, denoted $\nu_T = \mu_T / \rho$ in the Navier Stokes equations. Therefore, the key to solving the closure problem in eddy viscosity models is determining the eddy viscosity. Note that $\nu_T$ is a property of the flow, not the fluid (like the standard viscosity $\nu$).
+
+\begin{equation}
+\langle u_i u_j \rangle = \frac{2}{3} k \delta_{ij} - \nu_T \left[ \pdv{\overline{U_i}}{x_j} + \pdv{\overline{U_j}}{x_i} \right]  \label{eddyViscosityHypothesis}
+\end{equation}
+
+The eddy viscosity model makes two major assumptions:
+
+\begin{enumerate}
+\item The Deviatoric/anisotropic part of the Reynolds stress tensor is treated as a function of local mean strain rates only (i.e. in eq. \ref{eddyViscosityHypothesis}, LHS = RHS for all $i$, $j$ in isotropic turbulence)
+\item The relationship between the Reynolds stress and the mean strain rates are linearly related by a single scalar
+\end{enumerate}
+
+
+\input{\TexDir Turbulence/SpalartAllmaras.tex}

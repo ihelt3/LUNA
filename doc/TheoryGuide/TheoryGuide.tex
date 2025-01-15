@@ -51,7 +51,10 @@ These instructions give you guidelines for preparing papers for AIAA Technical P
 
 {\renewcommand\arraystretch{1.0}
 \noindent\begin{longtable*}{@{}l @{\quad=\quad} l@{}}
-$u_i$  & $i^\text{th}$-velocity component \\
+$u_i$  		& $i^\text{th}$-velocity component \\
+$\mu$ 		& dynamic viscosity \\
+$\nu$ 		& kinematic viscosity \\
+$\nu_T$ 	& kinematic Eddy viscosity
 \end{longtable*}}
 
 
@@ -90,6 +93,20 @@ $u_i$  & $i^\text{th}$-velocity component \\
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%%%%%%% 					Turbulence 						%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\clearpage
+\FloatBarrier
+\section{Turbulence}
+
+This section will detail turbulence theory and modeling in the LUNA code framework. 
+
+\input{\TexDir Turbulence/RANS.tex}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %%%%%%% 				Solver Algorithms 					%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -104,7 +121,7 @@ $u_i$  & $i^\text{th}$-velocity component \\
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%%%%%%% 				Solver Algorithms 					%%%%%%%
+%%%%%%% 						Math 						%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \clearpage

@@ -1,0 +1,50 @@
+\subsubsection{Spalart-Allmaras}
+
+Spalart-Allmaras is a low-Reynolds number one equation RANS turbulence model. In other words, one transport equation is required to be solved to determine the eddy viscosity. For a general compressible flow, the eddy viscosity is given as 
+
+\begin{equation}
+\mu_T = \rho f_{v1} \tilde{\nu}
+\end{equation}
+
+\noindent where 
+
+\begin{itemize}
+\item $\rho$ is the density
+\item $f_{v1}$ is a damping function 
+\item $\tilde{\nu}$ is a modified diffusivity
+\end{itemize}
+
+\noindent The damping function is:
+
+\begin{equation}
+f_{\nu 1} = \frac{\chi^3}{\chi^3 + c_{\nu1}^3}
+\end{equation}
+
+\noindent where:
+
+\begin{equation}
+\chi = \frac{\tilde{\nu}}{\nu}
+\end{equation}
+
+\noindent The transport equation for the modified diffusivity $\tilde{\nu}$ is:
+
+\begin{equation}
+\pdv{\rho \tilde{\nu}}{t} + \pdv{\rho \tilde{\nu} u_j}{x_j} = \frac{1}{\sigma_{\tilde{\nu}}} \pdv{}{x_j} \left[ \left(\mu + \rho \tilde{\nu} \right) \pdv{\tilde{\nu}}{x_j} \right] + P_{\tilde{\nu}} + S_{\tilde{\nu}} \label{SA_transport}
+\end{equation}
+
+\noindent where:
+
+\begin{itemize}
+\item $u_i$ is the mean velocity
+\item $\sigma_{\tilde{\nu}}$ is a model coefficient
+\item $\mu$ is the dynamic viscosity
+\item $P_{\tilde{\nu}}$ is the production term
+\item $S_{\tilde{\nu}}$ is source term
+\end{itemize}
+
+\noindent Note that using the continuity equation, eq. \ref{SA_transport} is equivalent to:
+
+\begin{equation}
+\rho \left[ \pdv{\tilde{\nu}}{t} + u_j \pdv{\tilde{\nu}}{x_j} \right] = \frac{1}{\sigma_{\tilde{\nu}}} \pdv{}{x_j} \left[ \left(\mu + \rho \tilde{\nu} \right) \pdv{\tilde{\nu}}{x_j} \right] + P_{\tilde{\nu}} + S_{\tilde{\nu}}
+\end{equation}
+
