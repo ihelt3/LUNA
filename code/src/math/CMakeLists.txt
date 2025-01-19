@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(MathLib VERSION 1.0.0 LANGUAGES CXX)
+project(math VERSION 1.0.0 LANGUAGES CXX)
 
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 20)
@@ -13,14 +13,13 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /O2")
 
 # Add an option to build tests
-option(BUILD_TESTS "Build tests for MathLib" ON)
+option(BUILD_TESTS "Build tests for math" ON)
 
 # Add source files automatically based on their extension
-file(GLOB LIB_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/src/*.cc)
-file(GLOB TEST_SOURCES CONFIGURE_DEPENDS ${CMAKE_SOURCE_DIR}/test/**/*.cc)
+file(GLOB LIB_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc)
 
 # Specify the include directories
-include_directories(${CMAKE_SOURCE_DIR}/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - # 
 # FetchContent can be enabled if you want to use git to download dependencies
@@ -39,16 +38,20 @@ find_package(GTest REQUIRED)
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - # 
 
 # Add the library target
-add_library(mathLib STATIC ${LIB_SOURCES})
+add_library(math STATIC ${LIB_SOURCES})
+
+# Ensure any libraries linking to math can see its headers
+target_include_directories(math PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Optionally add the test target
 if (BUILD_TESTS)
+    file(GLOB TEST_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test/**/*.cc)
     add_executable(mathTest ${TEST_SOURCES})
 
     # Link the library and GTest to the test executable
-    target_link_libraries(mathTest PRIVATE mathLib GTest::GTest GTest::Main)
+    target_link_libraries(mathTest PRIVATE math GTest::GTest GTest::Main)
     # Uncomment if FetchContent is used
-    # target_link_libraries(mathTest PRIVATE mathLib gtest gtest_main)
+    # target_link_libraries(mathTest PRIVATE math gtest gtest_main)
 
     # Post-build step to run tests
     add_custom_command(TARGET mathTest POST_BUILD

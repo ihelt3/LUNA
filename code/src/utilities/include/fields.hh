@@ -14,7 +14,6 @@
 #include <memory>
 #include <vector>
 #include <string>
-#include <MeshEntities.hh>
 #include <variant>
 
 #include "mesh.hh"

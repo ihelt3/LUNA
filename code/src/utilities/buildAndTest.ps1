@@ -12,7 +12,7 @@ cl.exe /nologo /EHsc /std:c++20 /O2 /I. /I "C:\libraries\include" /c /O2 /DCOMPI
 cl.exe /nologo /EHsc /std:c++20 /O2 /I. /I "C:\libraries\include" /I"include" /I"..\mesh\include" /I"..\math\include" /c /O2 /DCOMPILELIB .\test\test_fields\test_fields.cc /Fo".\build\test_fields.obj"
 
 # link object files to any necessary libraries and dependencies, then execute
-cl.exe /nologo /EHsc /std:c++20 .\build\mainTest.obj .\build\test_fields.obj /Fe".\build\fieldTest.exe" /link /MACHINE:x64 /LIBPATH:"..\math\build" mathLib.lib /LIBPATH:"C:\libraries\lib" gtest.lib /LIBPATH:"..\mesh\build" meshReader.lib /LIBPATH:".\build" utilities.lib /LIBPATH:"..\solver\build" Solver.lib
+cl.exe /nologo /EHsc /std:c++20 .\build\mainTest.obj .\build\test_fields.obj /Fe".\build\fieldTest.exe" /link /MACHINE:x64 /LIBPATH:"..\math\build\Release" mathLib.lib /LIBPATH:"C:\libraries\lib" gtest.lib /LIBPATH:"..\mesh\build" meshReader.lib /LIBPATH:".\build" utilities.lib /LIBPATH:"..\solver\build" Solver.lib
 
 # Clean up
 Remove-Item build\*.obj

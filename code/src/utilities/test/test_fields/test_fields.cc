@@ -47,7 +47,7 @@ protected:
     void SetUp() override
     {
         // Define mesh path
-        std::filesystem::path meshPath("./test/Common/rectangle.su2");
+        std::filesystem::path meshPath(MESH_DIR "/rectangle.su2"); // NOTE: MESH_DIR is a compile definition defined in CMakeLists.txt
 
         // Read mesh
         std::cout << "reading mesh..." << std::endl;

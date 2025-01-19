@@ -12,11 +12,11 @@ cl.exe /nologo /EHsc /std:c++20 /I. /I"include" /I"..\math\include" /c /O2 /DCOM
 lib.exe /nologo /OUT:build\meshReader.lib build\read_base.obj build\read_su2.obj build\MeshEntities.obj build\mesh.obj
 
 # compile tests
-cl.exe /nologo /EHsc /std:c++20 /I. /I "C:\libraries\include" /c /O2 /DCOMPILELIB .\test\mainTest.cc /Fo".\build\mainTest.obj"
-cl.exe /nologo /EHsc /std:c++20 /I. /I "C:\libraries\include" /I"..\math\include" /c /O2 /DCOMPILELIB .\test\su2\test_su2.cc /Fo".\build\test_su2.obj"
+cl.exe /nologo /EHsc /std:c++20 /I. /I "C:\libraries\include" /I"include" /c /O2 /DCOMPILELIB .\test\mainTest.cc /Fo".\build\mainTest.obj"
+cl.exe /nologo /EHsc /std:c++20 /I. /I "C:\libraries\include" /I"include" /I"..\math\include" /c /O2 /DCOMPILELIB .\test\su2\test_su2.cc /Fo".\build\test_su2.obj"
 
 # link library into main executable
-cl.exe /nologo /EHsc /std:c++20 .\build\mainTest.obj .\build\test_su2.obj /Fe".\build\meshTest.exe" /link /MACHINE:x64 /LIBPATH:"..\math\build" mathLib.lib /LIBPATH:.\build meshReader.lib /LIBPATH:"C:\libraries\lib" gtest.lib
+cl.exe /nologo /EHsc /std:c++20 .\build\mainTest.obj .\build\test_su2.obj /Fe".\build\meshTest.exe" /link /MACHINE:x64 /LIBPATH:"..\math\build\Release" mathLib.lib /LIBPATH:.\build meshReader.lib /LIBPATH:"C:\libraries\lib" gtest.lib
 
 # clean up
 Remove-Item build\*.obj

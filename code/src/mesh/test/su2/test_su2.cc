@@ -13,8 +13,8 @@
 
 #include "gtest/gtest.h"
 
-#include "../../include/read_su2.hh"
-#include "../../include/mesh.hh"
+#include "read_su2.hh"
+#include "mesh.hh"
 
 /*------------------------------------------------------------------------*\
 **  Test Fixture
@@ -27,10 +27,11 @@ class read_su2_mesh_test : public ::testing::Test
 public:
     // Constructor
     read_su2_mesh_test() {
+        
         // square mesh geometry made of tris
-        std::filesystem::path simpleSquareMeshNoQuadFile("test/su2/meshes/square.su2");
+        std::filesystem::path simpleSquareMeshNoQuadFile(SU2_MESH_DIR "/square.su2"); // NOTE: SU2_MESH_DIR is a compile definition defined in CMakeLists.txt
         // square mesh geometry made of tris with one quad
-        std::filesystem::path simpleSquareMeshWithQuadFile("test/su2/meshes/square_wQuad.su2");
+        std::filesystem::path simpleSquareMeshWithQuadFile(SU2_MESH_DIR "/square_wQuad.su2"); // NOTE: SU2_MESH_DIR is a compile definition defined in CMakeLists.txt
 
         // Read meshes
         // MESH::read_su2 simpleSquareMeshNoQuad(simpleSquareMeshNoQuadFile);
