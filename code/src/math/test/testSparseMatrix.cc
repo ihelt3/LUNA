@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 
-#include "../../include/sparseMatrix.hh"
+#include "sparseMatrix.hh"
 
 #include <vector>
 

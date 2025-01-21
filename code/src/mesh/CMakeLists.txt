@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.20)
-project(MeshLib VERSION 1.0.0 LANGUAGES CXX)
+project(meshReader VERSION 1.0.0 LANGUAGES CXX)
+
+# Guard Logic to Prevent re-adding the meshReader library
+if (TARGET meshReader)
+    return()  # If meshReader already exists, skip the rest of this script
+endif()
 
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 20)
@@ -19,16 +24,18 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include 
 )
 
-# Specify the binary directories for math
-set(MATH_BINARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../math/build")
-# Add subdirectories with their own binary directories
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../math ${MATH_BINARY_DIR})
+# Include dependencies only if boundary is built independently
+if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
+    # Add dependencies as subdirectories
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../math ${CMAKE_BINARY_DIR}/math)
+endif()
 
 # Add the meshReader library target
 add_library(meshReader STATIC ${LIB_SOURCES})
 
 # Ensure any libraries linking to meshReader can see its headers
 target_include_directories(meshReader PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 # Link meshReader library with math and utilities libraries, public to ensure meshReader propagates math's include directories
 target_link_libraries(meshReader PUBLIC math)
 
@@ -39,7 +46,7 @@ if (BUILD_TESTS)
     find_package(GTest REQUIRED)
 
     # Add test source files using wildcards for .cc files
-    file(GLOB TEST_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test/**/*.cc)
+    file(GLOB TEST_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test/*.cc)
 
     # Add the test executable
     add_executable(meshReaderTest ${TEST_SOURCES})
@@ -51,7 +58,7 @@ if (BUILD_TESTS)
     # file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/test/su2/meshes DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/test/su2)
 
     # Get absolute path to the test meshes
-    set(SU2_MESH_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test/su2/meshes)
+    set(SU2_MESH_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test/meshes)
     # Add the directory as a compile definition
     target_compile_definitions(meshReaderTest PUBLIC SU2_MESH_DIR="${SU2_MESH_DIR}")
 

@@ -36,7 +36,7 @@ protected:
     // Initializer
     void complexInitialization() {
         // Simple mesh to test with
-        std::filesystem::path meshFile("test/Common/testMesh.su2");
+        std::filesystem::path meshFile(COMMON_DIR "/testMesh.su2");
 
         // Read mesh
         MESH::read_su2 testMesh(meshFile);

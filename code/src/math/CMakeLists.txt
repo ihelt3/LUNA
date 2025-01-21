@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.20)
 project(math VERSION 1.0.0 LANGUAGES CXX)
 
+# Guard Logic to Prevent re-adding the math library
+if (TARGET math)
+    return()  # If math already exists, skip the rest of this script
+endif()
+
 # Set the C++ standard
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -45,7 +50,7 @@ target_include_directories(math PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
 # Optionally add the test target
 if (BUILD_TESTS)
-    file(GLOB TEST_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test/**/*.cc)
+    file(GLOB TEST_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test/*.cc)
     add_executable(mathTest ${TEST_SOURCES})
 
     # Link the library and GTest to the test executable

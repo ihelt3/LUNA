@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
-project(utilities VERSION 1.0.0 LANGUAGES CXX)
+project(solver VERSION 1.0.0 LANGUAGES CXX)
 
-# Guard Logic to Prevent re-adding the utilities library
-if (TARGET utilities)
-    return()  # If utilities already exists, skip the rest of this script
+# Guard Logic to Prevent re-adding the solver library
+if (TARGET solver)
+    return()  # If solver already exists, skip the rest of this script
 endif()
 
 # Set the C++ standard
@@ -22,22 +22,18 @@ file(GLOB LIB_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc)
 
 # Specify include directories
 include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include 
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-# # # Specify the binary directories for mesh reader
-# set(MESH_BINARY_DIR "${CMAKE_BINARY_DIR}/mesh")
-
-# # # Add subdirectories with their own binary directories
-# add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../mesh ${MESH_BINARY_DIR})
-
-# Include dependencies only if utilities is built independently
+# Include dependencies only if solver is built independently
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     # Add dependencies as subdirectories
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../math      ${CMAKE_BINARY_DIR}/math)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../mesh      ${CMAKE_BINARY_DIR}/mesh)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../math           ${CMAKE_BINARY_DIR}/math)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../mesh           ${CMAKE_BINARY_DIR}/mesh)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../utilities      ${CMAKE_BINARY_DIR}/utilities)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../boundary       ${CMAKE_BINARY_DIR}/boundary)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../postprocessing ${CMAKE_BINARY_DIR}/postprocessing)
 endif()
-
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - # 
 # FetchContent can be enabled if you want to use git to download dependencies
@@ -53,37 +49,42 @@ endif()
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - # 
 
 # Add the library target
-add_library(utilities STATIC ${LIB_SOURCES})
+add_library(solver STATIC ${LIB_SOURCES})
 
-# Ensure any libraries linking to utilities can see its headers
-target_include_directories(utilities PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+# Make sure any linking libraries can see its headers
+target_include_directories(solver PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Link utilities library with meshReader library, public to ensure that utilities propagates meshReader's include directories
-target_link_libraries(utilities PUBLIC meshReader)
+# Link existing libraries
+target_link_libraries(solver PUBLIC meshReader math utilities boundary postprocessing)
 
 # Add an option to build tests
-option(BUILD_TESTS "Build tests for utilities" ON)
+option(BUILD_TESTS "Build tests for solver library" ON)
 if (BUILD_TESTS)
     # Find GTest package (Comment if FetchContent is used)
     find_package(GTest REQUIRED)
 
     # Get test source files
     file(GLOB TEST_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test/*.cc)
-    add_executable(utilitiesTest ${TEST_SOURCES})
+    add_executable(solverTest ${TEST_SOURCES})
 
     # Link the library and GTest to the test executable
-    target_link_libraries(utilitiesTest PRIVATE utilities GTest::GTest GTest::Main)
+    target_link_libraries(solverTest PRIVATE solver GTest::GTest GTest::Main)
     # Uncomment if FetchContent is used
-    # target_link_libraries(utilitiesTest PRIVATE utilities gtest gtest_main)
+    # target_link_libraries(solverTest PRIVATE solver gtest gtest_main)
 
     # Get absolute path to the test meshes
-    set(MESH_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test/Common)
+    set(COMMON_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test/Common)
     # Add the directory as a compile definition
-    target_compile_definitions(utilitiesTest PUBLIC MESH_DIR="${MESH_DIR}")
-    
+    target_compile_definitions(solverTest PUBLIC COMMON_DIR="${COMMON_DIR}")
+
+    # Get absolute path to the test meshes
+    set(COMMON_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test/Common)
+    # Add the directory as a compile definition
+    target_compile_definitions(solverTest PUBLIC COMMON_DIR="${COMMON_DIR}")
+
     # Post-build step to run tests
-    add_custom_command(TARGET utilitiesTest POST_BUILD
-        COMMAND utilitiesTest
+    add_custom_command(TARGET solverTest POST_BUILD
+        COMMAND solverTest
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
 endif()
@@ -92,7 +93,7 @@ endif()
 option(BUILD_LIBRARY_ONLY "Only build the library without tests" OFF)
 if (BUILD_LIBRARY_ONLY)
     message(STATUS "Building library only (tests will be skipped).")
-    set_target_properties(utilitiesTest PROPERTIES EXCLUDE_FROM_ALL TRUE)
+    set_target_properties(solverTest PROPERTIES EXCLUDE_FROM_ALL TRUE)
 endif()
 
 ### Build Everything (Library + Tests):

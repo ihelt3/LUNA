@@ -29,7 +29,7 @@ protected:
     // Initializer
     void complexInitialization() {
         // Simple mesh to test with
-        std::filesystem::path meshFile("test/Common/rectangle.su2");
+        std::filesystem::path meshFile( MESH_DIR "/rectangle.su2"); // NOTE: MESH_DIR is a compile definition defined in CMakeLists.txt
 
         // Read meshes
         MESH::read_su2 testMesh(meshFile);

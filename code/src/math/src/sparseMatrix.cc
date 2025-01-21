@@ -8,7 +8,7 @@
 **
 \*------------------------------------------------------------------------*/
 
-#include "../include/sparseMatrix.hh"
+#include "sparseMatrix.hh"
 
 #include <cassert>
 #include <vector>

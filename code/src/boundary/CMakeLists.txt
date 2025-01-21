@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.20)
-project(utilities VERSION 1.0.0 LANGUAGES CXX)
+project(boundary VERSION 1.0.0 LANGUAGES CXX)
 
-# Guard Logic to Prevent re-adding the utilities library
-if (TARGET utilities)
-    return()  # If utilities already exists, skip the rest of this script
+# Guard Logic to Prevent re-adding the boundary library
+if (TARGET boundary)
+    return()  # If boundary already exists, skip the rest of this script
 endif()
 
 # Set the C++ standard
@@ -22,22 +22,18 @@ file(GLOB LIB_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cc)
 
 # Specify include directories
 include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}/include 
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
-# # # Specify the binary directories for mesh reader
-# set(MESH_BINARY_DIR "${CMAKE_BINARY_DIR}/mesh")
-
-# # # Add subdirectories with their own binary directories
-# add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../mesh ${MESH_BINARY_DIR})
-
-# Include dependencies only if utilities is built independently
+# Include dependencies only if boundary is built independently
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     # Add dependencies as subdirectories
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../math      ${CMAKE_BINARY_DIR}/math)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../mesh      ${CMAKE_BINARY_DIR}/mesh)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../math           ${CMAKE_BINARY_DIR}/math)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../mesh           ${CMAKE_BINARY_DIR}/mesh)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../utilities      ${CMAKE_BINARY_DIR}/utilities)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../postprocessing ${CMAKE_BINARY_DIR}/postprocessing) # have to add post-processing since solver depends on it
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../solver         ${CMAKE_BINARY_DIR}/solver)
 endif()
-
 
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - # 
 # FetchContent can be enabled if you want to use git to download dependencies
@@ -53,37 +49,43 @@ endif()
 # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - # 
 
 # Add the library target
-add_library(utilities STATIC ${LIB_SOURCES})
+add_library(boundary STATIC ${LIB_SOURCES})
 
-# Ensure any libraries linking to utilities can see its headers
-target_include_directories(utilities PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+# Make sure any linking libraries can see its headers
+target_include_directories(boundary PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Link utilities library with meshReader library, public to ensure that utilities propagates meshReader's include directories
-target_link_libraries(utilities PUBLIC meshReader)
+# Link existing libraries
+target_link_libraries(boundary PUBLIC meshReader math solver utilities)
+
 
 # Add an option to build tests
-option(BUILD_TESTS "Build tests for utilities" ON)
+option(BUILD_TESTS "Build tests for boundary library" ON)
 if (BUILD_TESTS)
     # Find GTest package (Comment if FetchContent is used)
     find_package(GTest REQUIRED)
 
     # Get test source files
     file(GLOB TEST_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test/*.cc)
-    add_executable(utilitiesTest ${TEST_SOURCES})
+    add_executable(boundaryTest ${TEST_SOURCES})
 
     # Link the library and GTest to the test executable
-    target_link_libraries(utilitiesTest PRIVATE utilities GTest::GTest GTest::Main)
+    target_link_libraries(boundaryTest PRIVATE boundary GTest::GTest GTest::Main)
     # Uncomment if FetchContent is used
-    # target_link_libraries(utilitiesTest PRIVATE utilities gtest gtest_main)
+    # target_link_libraries(boundaryTest PRIVATE boundary gtest gtest_main)
 
     # Get absolute path to the test meshes
     set(MESH_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test/Common)
     # Add the directory as a compile definition
-    target_compile_definitions(utilitiesTest PUBLIC MESH_DIR="${MESH_DIR}")
-    
+    target_compile_definitions(boundaryTest PUBLIC MESH_DIR="${MESH_DIR}")
+
+    # Get absolute path to the test meshes
+    set(MESH_DIR ${CMAKE_CURRENT_SOURCE_DIR}/test/Common)
+    # Add the directory as a compile definition
+    target_compile_definitions(boundaryTest PUBLIC MESH_DIR="${MESH_DIR}")
+
     # Post-build step to run tests
-    add_custom_command(TARGET utilitiesTest POST_BUILD
-        COMMAND utilitiesTest
+    add_custom_command(TARGET boundaryTest POST_BUILD
+        COMMAND boundaryTest
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
 endif()
@@ -92,7 +94,7 @@ endif()
 option(BUILD_LIBRARY_ONLY "Only build the library without tests" OFF)
 if (BUILD_LIBRARY_ONLY)
     message(STATUS "Building library only (tests will be skipped).")
-    set_target_properties(utilitiesTest PROPERTIES EXCLUDE_FROM_ALL TRUE)
+    set_target_properties(boundaryTest PROPERTIES EXCLUDE_FROM_ALL TRUE)
 endif()
 
 ### Build Everything (Library + Tests):

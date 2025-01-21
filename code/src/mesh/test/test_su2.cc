@@ -29,9 +29,9 @@ public:
     read_su2_mesh_test() {
         
         // square mesh geometry made of tris
-        std::filesystem::path simpleSquareMeshNoQuadFile(SU2_MESH_DIR "/square.su2"); // NOTE: SU2_MESH_DIR is a compile definition defined in CMakeLists.txt
+        std::filesystem::path simpleSquareMeshNoQuadFile(SU2_MESH_DIR "/su2/square.su2"); // NOTE: SU2_MESH_DIR is a compile definition defined in CMakeLists.txt
         // square mesh geometry made of tris with one quad
-        std::filesystem::path simpleSquareMeshWithQuadFile(SU2_MESH_DIR "/square_wQuad.su2"); // NOTE: SU2_MESH_DIR is a compile definition defined in CMakeLists.txt
+        std::filesystem::path simpleSquareMeshWithQuadFile(SU2_MESH_DIR "/su2/square_wQuad.su2"); // NOTE: SU2_MESH_DIR is a compile definition defined in CMakeLists.txt
 
         // Read meshes
         // MESH::read_su2 simpleSquareMeshNoQuad(simpleSquareMeshNoQuadFile);
