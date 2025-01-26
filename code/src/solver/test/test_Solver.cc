@@ -56,12 +56,13 @@ protected:
     double s2 = sqrt(2.0);
     // Face normal deltas
     std::vector<double> testFaceNormalDeltas = {
-        0.5, 5.0/6.0, 0.5, 0.5, 1.0/3.0, s2/3.0, 1.0/3.0, 1.0/3.0, 2.0/3.0, s2/3.0, 2.0/3.0, 5.0/6.0, 0.5, 0.5, 0.5, s2/3.0, 1.0/3.0, 1.0/3.0, 1.0/3.0
+        //0    1      2      3    4         5        6      7        8        9       10        11     12   13   14   15        16        17     18
+        0.5, 0.5, 5.0/6.0, 0.5, 1.0/3.0, s2/3.0, 1.0/3.0, 2.0/3.0, 1.0/3.0, s2/3.0, 5.0/6.0, 2.0/3.0, 0.5, 0.5, 0.5, s2/3.0, 1.0/3.0, 1.0/3.0, 1.0/3.0
     };
 
     // perturbed face pressure gradients
     std::vector<std::vector<double>> testFacePressureGradients = {
-        {0.0,-0.0} , {0.0,6.0/5.0} , {0.0,0.0} , {0.0,0.0} , {0.0,0.0} , {0.0,0.0} , {0.0,0.0} , {0.0,0.0} , {1.5,0.0} , {-1.5,-1.5} , 
+        {0.0,-0.0} , {0.0,0.0} , {0.0,6.0/5.0} , {0.0,0.0} , {0.0,0.0} , {0.0,0.0} , {0.0,0.0} , {1.5,0.0} , {0.0,0.0} , {-1.5,-1.5} , 
         {0.0,0.0} , {0.0,0.0} , {0.0,0.0} , {0.0,0.0} , {0.0,0.0} , {0.0,0.0} , {0.0,0.0} , {0.0,0.0} , {0.0,0.0}
     };
 
@@ -71,8 +72,8 @@ protected:
     };
 
     // perturbed cell face pressure
-    double w1 = (1.0/sqrt(5.0/36.0))/(1.0/sqrt(5.0/36.0) + 2.0);
-    std::vector<double> testFacePressure = { 0.0, w1*2.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.5, 0.5, w1*1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+    double w1 = (1.0/sqrt(5.0/36.0))/(1.0/sqrt(5.0/36.0) + 2.0);                  //7    8     9   10    11
+    std::vector<double> testFacePressure = { 0.0, 0.0, w1*2.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.5, w1*1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
 
 
 public:
@@ -205,7 +206,7 @@ TEST_F(solver_test, testCellPressureGradients)
 
     // Arrange
     std::vector<double> testPressureInternal = solver->get_facePressureField().get_internal();
-    testPressureInternal[1] = 1.0;
+    testPressureInternal[2] = 1.0;
     testPressureInternal[9] = 1.0;
     UTILITIES::field<double> testPressureField(solver->get_mesh(),testPressureInternal);
     solver->set_facePressureField(testPressureField);
