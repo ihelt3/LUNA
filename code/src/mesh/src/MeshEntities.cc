@@ -56,6 +56,28 @@ MESH::mesh_entity::mesh_entity(int id, elementTypeEnum elementType, std::vector<
     initialize();
 }
 
+// construct from face vector
+MESH::mesh_entity::mesh_entity(int id, elementTypeEnum elementType, std::vector<face> faces, bool subElement)
+:
+    _id(id),
+    _elementType(elementType),
+    _subElement(subElement),
+    _centroid({})
+{
+    // Grab nodes from faces
+    for (int i=0 ; i<faces.size() ; i++) {
+        for (int j=0 ; j<faces[i].get_nodes().size() ; j++) {
+            if (std::find(_nodeIDs.begin(), _nodeIDs.end(), faces[i].get_nodes()[j].get_id()) == _nodeIDs.end()) {
+                _nodes.push_back(faces[i].get_nodes()[j]);
+                _nodeIDs.push_back(faces[i].get_nodes()[j].get_id());
+            }
+        }
+    }
+
+    // Run Initilize vector
+    initialize();
+}
+
 // * * * * * * * * * * * * * *  initialize * * * * * * * * * * * * * * * //
 // Initializer of face class
 void MESH::mesh_entity::initialize() {
@@ -189,7 +211,9 @@ MESH::face::face(mesh_entity e, bool boundaryFace)
 :
     mesh_entity(e),
     _boundaryFace(boundaryFace)
-{}
+{
+
+}
 
 MESH::face::face(int id, elementTypeEnum elementType, std::vector<node> nodes, bool subElement, bool boundaryFace)
 :
@@ -199,6 +223,7 @@ MESH::face::face(int id, elementTypeEnum elementType, std::vector<node> nodes, b
     initialize();
 }
 
+// ONLY NODE IDs ARE PROVIDED, NEEDS TO BE INITILIAZED LATER
 MESH::face::face(int id, elementTypeEnum elementType, std::vector<int> nodeIDs, bool subElement, bool boundaryFace)
 :
     mesh_entity(id, elementType, nodeIDs, subElement),
@@ -241,6 +266,17 @@ MESH::element::element(int id, elementTypeEnum elementType, std::vector<node> no
     initialize();
 }
 
+MESH::element::element(int id, elementTypeEnum elementType, std::vector<face> faces, bool subElement)
+:
+    mesh_entity(id,elementType,faces,subElement)
+{
+    // Assign faces to element
+    _faces = faces;
+
+    // Run initialize method
+    initialize();
+}
+
 
 // * * * * * * * * * * * * * *  initialize * * * * * * * * * * * * * * * //
 // Initializer of element class
@@ -250,7 +286,9 @@ void MESH::element::initialize() {
     calculateCentroid();
 
     // Get faces and distance weights
-    determineSubElements();
+    if ( _faces.size() == 0 ) {
+        determineSubElements();
+    }
     calculateOutwardNormals();
 
     // Calculate volume and centroid
@@ -415,7 +453,7 @@ void MESH::node::calculateElementDistanceWeights(const std::vector<element>* ele
 }
 
 // * * * * * * * * * * * * * *  operator- * * * * * * * * * * * * * * * //
-// Overloaded - operator: return the difference between two nodes
+// Overloaded - operator: return the vector distance between two nodes
 MATH::Vector MESH::node::operator-(const node& obj) {
     MATH::Vector diff = _coordinates - obj._coordinates;
     return diff;

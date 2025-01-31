@@ -19,7 +19,7 @@ namespace MESH
 {
 
 /*------------------------------------------------------------------------*\
-**  Class read_base Declaration
+**  Class mesh Declaration
 \*------------------------------------------------------------------------*/
 
 class mesh
@@ -28,22 +28,6 @@ public:
     // Constructor
         // Construct from dimension, elements, nodes, BCs, elementConnectivity, BCConnectivity
         mesh(int, std::vector<element>, std::vector<face>, std::vector<node>, std::vector<Boundary>);
-
-    // Member Data
-        // dimension of mesh
-        int _dimension; 
-        // Mesh data
-        int _nElements, _nNodes, _nBCs;
-        // elements and faces vector
-        std::vector<element> _elements;
-        std::vector<face> _faces;
-
-        // Nodes Vector
-        std::vector<node> _nodes;
-        // Boundary Conditions Vector
-        std::vector<Boundary> _boundaries;  
-        // element Connectivity tensor
-
 
     // Member Functions
         // Get boundary ID from name
@@ -64,7 +48,24 @@ public:
         // return faces vector
         const std::vector<face>& get_faces() const { return _faces; };
 
-    // set methods
+    // friend classes
+        // mesh adaption classes needs to access and modify protected members
+        friend class meshAdaption;
+
+protected:
+    // Private Member Data
+        // dimension of mesh
+        int _dimension; 
+        // Mesh data
+        int _nElements, _nNodes, _nBCs;
+        // elements and faces vector
+        std::vector<element> _elements;
+        std::vector<face> _faces;
+
+        // Nodes Vector
+        std::vector<node> _nodes;
+        // Boundary Conditions Vector
+        std::vector<Boundary> _boundaries;  
 
 
 };

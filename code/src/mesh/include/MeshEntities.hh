@@ -87,7 +87,7 @@ public:
     // Public member data
 
     // Member Functions
-        // Calculate distance weights to elements
+        // Calculate distance weights to elements, using vector of all elements in mesh
         void calculateElementDistanceWeights(const std::vector<element>*);
         // Check if boundary node
         bool is_boundaryNode() const { return _onBoundary; };
@@ -148,6 +148,8 @@ public:
         mesh_entity(int, elementTypeEnum, std::vector<int>, bool subElement=false);
         // instantiate from vector of nodes
         mesh_entity(int, elementTypeEnum, std::vector<node>, bool subElement=false);
+        // instantiate from vector of faces
+        mesh_entity(int, elementTypeEnum, std::vector<face>, bool subElement=false);
     
     // Member Functions
         // initialize mesh entity
@@ -264,6 +266,8 @@ public:
         element(int, elementTypeEnum, std::vector<int>, bool subElement=false);
         // instantiate from vector of nodes
         element(int, elementTypeEnum, std::vector<node>, bool subElement=false);
+        // instantiate from vector of faces
+        element(int, elementTypeEnum, std::vector<face>, bool subElement=false);
 
     // Member Functions
         // initialize element
