@@ -15,8 +15,7 @@
 
 #include "MeshEntities.hh"
 
-namespace MESH
-{
+namespace MESH {
 
 /*------------------------------------------------------------------------*\
 **  Class mesh Declaration
@@ -26,8 +25,10 @@ class mesh
 {
 public:
     // Constructor
+        // Construct an empty Mesh
+        mesh() {};
         // Construct from dimension, elements, nodes, BCs, elementConnectivity, BCConnectivity
-        mesh(int, std::vector<element>, std::vector<face>, std::vector<node>, std::vector<Boundary>);
+        mesh(int, std::vector<std::shared_ptr<element>>, std::vector<std::shared_ptr<face>>, std::vector<std::shared_ptr<node>>, std::vector<std::shared_ptr<Boundary>>);
 
     // Member Functions
         // Get boundary ID from name
@@ -40,17 +41,25 @@ public:
     // get methods
         const int& get_dimension() const { return _dimension; };
         // return elements vector
-        const std::vector<element>& get_elements() const { return _elements; };
+        const std::vector<std::shared_ptr<element>>& get_elements() const { return _elements; };
         // return nodes vector
-        const std::vector<node>& get_nodes() const { return _nodes; };
+        const std::vector<std::shared_ptr<node>>& get_nodes() const { return _nodes; };
         // return BCs vector
-        const std::vector<Boundary>& get_boundaries() const { return _boundaries; };
+        const std::vector<std::shared_ptr<Boundary>>& get_boundaries() const { return _boundaries; };
         // return faces vector
-        const std::vector<face>& get_faces() const { return _faces; };
+        const std::vector<std::shared_ptr<face>>& get_faces() const { return _faces; };
+
+    // Operator Overloading
+        // Overloaded << operator
+        friend std::ostream& operator<<(std::ostream&, const mesh&);
 
     // friend classes
+        // Reading classes needs to access private members
+        friend class read_base;
+        friend class read_su2;
         // mesh adaption classes needs to access and modify protected members
         friend class meshAdaption;
+        
 
 protected:
     // Private Member Data
@@ -58,14 +67,14 @@ protected:
         int _dimension; 
         // Mesh data
         int _nElements, _nNodes, _nBCs;
-        // elements and faces vector
-        std::vector<element> _elements;
-        std::vector<face> _faces;
-
+        // Elements vector
+        std::vector<std::shared_ptr<element>> _elements;
+        // Faces vector
+        std::vector<std::shared_ptr<face>> _faces;
         // Nodes Vector
-        std::vector<node> _nodes;
-        // Boundary Conditions Vector
-        std::vector<Boundary> _boundaries;  
+        std::vector<std::shared_ptr<node>> _nodes;
+        // Boundaries Vector
+        std::vector<std::shared_ptr<Boundary>> _boundaries;  
 
 
 };

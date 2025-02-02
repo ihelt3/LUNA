@@ -18,6 +18,7 @@
 // * * * * * * * * * * * * * *  Constructor * * * * * * * * * * * * * * * //
 MESH::read_su2::read_su2(std::filesystem::path su2FilePath) : read_base(su2FilePath) {
     std::cout << "Reading su2 mesh..." << std::endl;
+    auto start = std::chrono::steady_clock::now();
 
     std::string line;
 
@@ -33,7 +34,7 @@ MESH::read_su2::read_su2(std::filesystem::path su2FilePath) : read_base(su2FileP
         if (line.find("NDIME") != std::string::npos) {
             std::cout << "  Getting dimensional information..." << std::endl;
             line = line.erase(0,line.find(_delimiter)+1);
-            _dimension = std::stoi(line.c_str());
+            Mesh._dimension = std::stoi(line.c_str());
         }
         // Check for NELEM
         else if (line.find("NELEM") != std::string::npos) {
@@ -58,11 +59,15 @@ MESH::read_su2::read_su2(std::filesystem::path su2FilePath) : read_base(su2FileP
 
     std::cout << "  instantiating elements from node list..." << std::endl;
     instantiateElements();
-    std::cout << "  Reading faces from element list..." << std::endl;
-    instantiateFaces();
     std::cout << "  Updating Nodes..." << std::endl;
     updateNodes();
-    
+
+    // Time mesh reading
+    auto end = std::chrono::steady_clock::now();
+    auto diff = end-start;
+    std::cout << "Mesh read in " << std::chrono::duration<double, std::milli>(diff).count() << " ms" << std::endl;
+
+    // done!
     std::cout << "su2 mesh read!" << std::endl;
 }
 
@@ -95,6 +100,7 @@ MESH::element MESH::read_su2::elementFromLine(std::string line, bool subElement,
     }
     
     element elementOut(id,elementTypei,nodeID_vec,subElement);
+    elementOut.hash();
 
     return elementOut;
 }
@@ -125,7 +131,7 @@ void MESH::read_su2::parseElements() {
         element elementi = elementFromLine(line,false,id);
 
         // Add element to elements vector
-        _elements.push_back(elementi);
+        Mesh._elements.push_back(std::make_shared<element>(elementi));
     }
 }
 
@@ -136,20 +142,19 @@ void MESH::read_su2::parseNodes() {
     std::string line;
     double coord;
 
-
     for (int node_it=0 ; node_it < _nNodes ; node_it++) {
         getline(_file,line);
         std::istringstream iss(line);
         std::vector<double> coordinates;
-        coordinates.reserve(_dimension);
+        coordinates.reserve(Mesh._dimension);
 
-        for (int dim=0 ; dim<_dimension ; dim++) {
+        for (int dim=0 ; dim<Mesh._dimension ; dim++) {
             iss >> coord;
             coordinates.push_back(coord);
         }
         // instantiate node object
         node nodei(node_it,coordinates);
-        _nodes.push_back(nodei);
+        Mesh._nodes.push_back( std::make_shared<node>(nodei) );
     }
 }
 
@@ -174,8 +179,8 @@ void MESH::read_su2::parseBCs() {
         nFaces = std::stoi(line);
 
         // Initialize list of boundary elements
-        std::vector<face> BC_faceList;
-        BC_faceList.reserve(nFaces);
+        std::vector<std::string> BC_faceSeeds;
+        BC_faceSeeds.reserve(nFaces);
 
         // Loop through elements and grab number of nodes per
         for (int facei=0 ; facei<nFaces ; facei++)
@@ -189,14 +194,14 @@ void MESH::read_su2::parseBCs() {
             face thisFace(thisElement,true);
             
             // Add to element list
-            BC_faceList.push_back(thisFace);
+            BC_faceSeeds.push_back(thisFace.get_seed());
         }
 
-        // Define boundary condition object
-        Boundary thisBC(name,BC_faceList,-mark-1);
+        // Define boundary object
+        Boundary thisBC(name,BC_faceSeeds,-mark-1);
 
         // Add boundary condition to list
-        _BCs.push_back(thisBC);
+        Mesh._boundaries.push_back( std::make_shared<Boundary>(thisBC) );
     }
 }
 

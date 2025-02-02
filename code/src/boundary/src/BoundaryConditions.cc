@@ -41,7 +41,7 @@ BOUNDARIES::BoundaryCondition::BoundaryCondition(std::weak_ptr<SOLVER::Solver> s
 
     // Get Boundary Condition name from ID
     _bcIdx = solverPtr->get_mesh()->get_boundaryIdx(BCID);
-    _name = solverPtr->get_mesh()->get_boundaries()[_bcIdx].get_name();
+    _name = solverPtr->get_mesh()->get_boundaries()[_bcIdx]->get_name();
     
 }
 

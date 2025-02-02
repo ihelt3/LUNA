@@ -44,15 +44,15 @@ MESH::read_base::~read_base() {
 // * * * * * * * * * * * * * *  get_mesh * * * * * * * * * * * * * * * //
 MESH::mesh MESH::read_base::get_mesh() {
     // Assert variables are initialized
-    assert(_dimension > 1);
-    assert(!_elements.empty());
-    assert(!_nodes.empty());
-    assert(!_BCs.empty());
-    // assert(!_elementConnectivity.empty());
-    // assert(!_BCConnectivity.empty());
+    assert(Mesh._dimension > 1);
+    assert(!Mesh._elements.empty());
+    assert(!Mesh._nodes.empty());
+    assert(!Mesh._boundaries.empty());
 
     // Return mesh
-    return mesh(_dimension, _elements, _faces, _nodes, _BCs);
+    std::cout << "Mesh statistics: " << std::endl;
+    std::cout << Mesh << std::endl;
+    return Mesh;
 }
 
 
@@ -98,49 +98,139 @@ std::string MESH::read_base::get_line_of_str(const std::string str, const::std::
 }
 
 // * * * * * * * * * * * * * *  instantiateElements * * * * * * * * * * * * * * * //
-// Instantiate any elements that were constructed with only node ids
+// Instantiate any elements that were constructed with only node ids and add faces
+/*
+** NOTE: Assumes _nodes vector is already initialized
+**       Assumes _elements vector is initialized, but does not require _elements._faces to be defined
+**       Assumes _faces is NOT initialized
+**       Assumes _BCs is initialized
+**
+**       Essentially we are only given the nodes that make up everything, and have already initialized elements and BCs with that info
+**       We just need to add the faces to everything
+*/       
 void MESH::read_base::instantiateElements()
 {
+    auto start = std::chrono::steady_clock::now();
+
+    // Some particular assert statements...
+    assert(Mesh._nodes.size() > 0 && "read_base::instantiateElements: Requires nodes vector to be initialized");
+    assert(Mesh._elements.size() > 0 && "read_base::instantiateElements: Requires elements vector to be initialized");
+    assert(Mesh._faces.size() == 0 && "read_base::instantiateElements: Requires faces vector to be un-initialized");
+    assert(Mesh._boundaries.size() > 0 && "read_base::instantiateElements: Requires BCs vector to be initialized");
+
+
+    // Map of face hashes
+    std::unordered_map<std::string, std::shared_ptr<face>> faceMap;
+    // Map for face order
+    std::unordered_map<int, std::string> faceOrder;
+    // Map element ID to face IDs
+    std::unordered_map<int, std::vector<int>> elementFaceMap;
+    // Tracker for faceIDs
+    int faceID = 0;
+
+    //=================================================================================================
     // Loop through elements 
-    std::cout << "   instantiating elements..." << std::endl;
-    for (int c=0 ; c<_elements.size() ; c++)
+    for (int c=0 ; c<Mesh._elements.size() ; c++)
     {
-        if (_elements[c].get_nodes().size() == 0) {
+        // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+        // Assign nodes to element
+        if (Mesh._elements[c]->get_nodes().size() == 0) {
 
             // Nodes have not been assigned: get nodes from IDs and initialize element
-            std::vector<int> ids = _elements[c].get_nodeIDs();
-            std::vector<node> nodeList;
+            std::vector<int> ids = Mesh._elements[c]->get_nodeIDs();
+            std::vector<std::weak_ptr<node>> nodeList;
             for (int n=0 ; n<ids.size() ; n++) {
-                nodeList.push_back(_nodes[ids[n]]);
+                nodeList.push_back( Mesh._nodes[ids[n]] );
             }
 
             // Reinitializing element with node vector
-            _elements[c].set_nodes(nodeList);
-            _elements[c].initialize();
+            Mesh._elements[c]->set_nodes(nodeList);
+            Mesh._elements[c]->initializeInterior();
+        }
+
+        // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
+        // Loop through element faces and add to faceMap
+        if (Mesh._elements[c]->get_faces().size() == 0) {
+
+            // Faces have not been assigned, make faces
+            std::vector<face> faces = Mesh._elements[c]->determineSubElements();
+
+            // Check if faces exist in map
+            for (face& f : faces) {
+                // First instance of face
+                if ( faceMap.find(f.get_seed()) == faceMap.end() ) {
+                    // Assign face order
+                    faceOrder[faceID] = f.get_seed();
+                    f.set_id(faceID);
+                    // Map element to face
+                    f.add_element( Mesh._elements[c] );
+                    // Add face to faceMap (and add element to face)
+                    faceMap[f.get_seed()] = std::make_shared<face>(f);
+                    // Increment id for new element
+                    faceID++;
+                }
+                // Second instance of face
+                else
+                {
+                    // Map element to face
+                    faceMap[f.get_seed()]->add_element( Mesh._elements[c] );
+                }
+            }
+        }
+
+    }
+
+    //=================================================================================================
+    // Now Assign Face Vector
+    for (int idx=0 ; idx<faceOrder.size() ; idx++) {
+
+        Mesh._faces.push_back( faceMap[faceOrder[idx]] );
+
+        // Add face to elements
+        for (std::shared_ptr<element> e : Mesh._faces[idx]->get_elements()) {
+            Mesh._elements[e->get_id()]->add_face( Mesh._faces[idx] );
+        }
+
+    }
+
+
+    //=================================================================================================
+    // Loop through boundaries and assign faces vector
+    for ( int b=0 ; b<Mesh._boundaries.size() ; b++ )
+    {
+        // First check if BC has faces
+        if ( Mesh._boundaries[b]->get_faces().size() != 0 ) {
+            continue;
+        }
+
+        // Make sure boundary face seeds are defined
+        assert( Mesh._boundaries[b]->get_faceSeeds().size() > 0 && "Boundary face seeds are not defined" );
+
+        // Loop through faces in BC and add
+        for (int f=0 ; f<Mesh._boundaries[b]->get_faceSeeds().size() ; f++)
+        {
+            // Add face
+            Mesh._boundaries[b]->add_face( faceMap[Mesh._boundaries[b]->get_faceSeeds()[f]] );
+
+            // Set face to BC
+            Mesh._faces[ faceMap[Mesh._boundaries[b]->get_faceSeeds()[f]]->get_id() ]->set_boundary(Mesh._boundaries[b]->get_id());
         }
     }
 
-    // Loop through boundary conditions
-    std::cout << "   instantiating BCs..." << std::endl;
-    for (int b=0 ; b<_BCs.size() ; b++)
-    {
-        for (int e=0 ; e<_BCs[b].get_faces().size() ; e++)
-        {
-            if (_BCs[b].get_faces()[e].get_nodes().size() == 0) {
-                // Nodes have not been assigned: get nodes from IDs and initialize BC
-                std::vector<int> ids = _BCs[b].get_faces()[e].get_nodeIDs();
-                std::vector<node> nodeList;
-                for (int n=0 ; n<ids.size() ; n++) {
-                    nodeList.push_back(_nodes[ids[n]]);
-                }
-                _BCs[b].get_faces()[e].set_nodes(nodeList);
-                _BCs[b].get_faces()[e].initialize();
-            }
-        }
+
+    // Now that faces have been assigned to elements, and boundary faces defined, initialize elements
+    for (int e=0 ; e<Mesh._elements.size() ; e++) {
+        Mesh._elements[e]->initializeExterior();
     }
+
+
+    auto end = std::chrono::steady_clock::now();
+    auto diff = end-start;
+    std::cout << "    Element Instantiation time: " << std::chrono::duration<double, std::milli>(diff).count() << " ms" << std::endl;
 
 }
 
+/* vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv DEPRACATED: DELETE SOON vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
 // * * * * * * * * * * * * * *  instantiate Faces from elements * * * * * * * * * * * * * * * //
 void MESH::read_base::instantiateFaces()
 {
@@ -253,6 +343,7 @@ void MESH::read_base::instantiateFaces()
     }
     
 }
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ DEPRACATED: DELETE SOON ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ */
 
 
 // * * * * * * * * * * * * * *  Update Nodes * * * * * * * * * * * * * * * //
@@ -261,25 +352,25 @@ void MESH::read_base::updateNodes()
     auto start = std::chrono::steady_clock::now();
 
     // Add elements to nodes
-    for (int e=0 ; e<_elements.size() ; e++) {
-        for (int n=0 ; n<_elements[e].get_nodes().size() ; n++) {
-            _nodes[_elements[e].get_nodes()[n].get_id()].add_element(_elements[e].get_id());
+    for (int e=0 ; e<Mesh._elements.size() ; e++) {
+        for (int n=0 ; n<Mesh._elements[e]->get_nodes().size() ; n++) {
+            Mesh._nodes[Mesh._elements[e]->get_nodes()[n]->get_id()]->add_element( Mesh._elements[e] );
         }
     }
 
     // Add faces to nodes
-    for (int f=0 ; f<_faces.size() ; f++) {
-        for (int n=0 ; n<_faces[f].get_nodes().size() ; n++) {
-            _nodes[_faces[f].get_nodes()[n].get_id()].add_face(_faces[f].get_id());
-            if (_faces[f].is_boundaryFace()) {
-                _nodes[_faces[f].get_nodes()[n].get_id()].set_boundary(true);
+    for (int f=0 ; f<Mesh._faces.size() ; f++) {
+        for (int n=0 ; n<Mesh._faces[f]->get_nodes().size() ; n++) {
+            Mesh._nodes[Mesh._faces[f]->get_nodes()[n]->get_id()]->add_face( Mesh._faces[f] );
+            if (Mesh._faces[f]->is_boundaryFace()) {
+                Mesh._nodes[Mesh._faces[f]->get_nodes()[n]->get_id()]->set_boundary(true);
             }
         }
     }
     
     // Calculate distance weights
-    for (int n=0 ; n<_nodes.size() ; n++) {
-        _nodes[n].calculateElementDistanceWeights(&_elements);
+    for (int n=0 ; n<Mesh._nodes.size() ; n++) {
+        Mesh._nodes[n]->calculateElementDistanceWeights();
     }
 
     auto end = std::chrono::steady_clock::now();

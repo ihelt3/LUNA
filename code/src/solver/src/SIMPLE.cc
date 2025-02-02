@@ -119,43 +119,39 @@ void SOLVER::SIMPLE::computeFaceVelocities()
     double w1;
     double A0_1;
     double A0_2;
-    int cellid1;
-    int cellid2;
-    MESH::element cell1;
-    MESH::element cell2;
+    std::shared_ptr<MESH::element> cell1;
+    std::shared_ptr<MESH::element> cell2;
 
     MATH::Vector ucell1;
     MATH::Vector ucell2;
     MATH::Vector udp;
 
     // Loop over faces
-    for (const MESH::face& f : _mesh->get_faces() ) {
+    for (const std::shared_ptr<MESH::face>& f : _mesh->get_faces() ) {
         // Check if face is on boundary
         // std::cout << "Face: " << f.get_id() << std::endl;
-        if (f.is_boundaryFace()) {
+        if (f->is_boundaryFace()) {
             // Second element should be boundary ID (for faces in mesh faces)
-            faceVelocity = _BCs[f.get_elements()[1]]->get_velocity(f.get_id());
+            faceVelocity = _BCs[f->get_boundaryID()]->get_velocity(f->get_id());
         }
         else {
-            cellid1 = f.get_elements()[0];
-            cellid2 = f.get_elements()[1];
-            cell1 = _mesh->get_elements()[cellid1];
-            cell2 = _mesh->get_elements()[cellid2];
+            cell1 = f->get_elements()[0];
+            cell2 = f->get_elements()[1];
 
             // Get distance weight of first cell
-            w1 = cell1.get_distanceWeights()[cell1==f];
+            w1 = cell1->get_distanceWeights()[*cell1==*f];
 
             // Cell 1 contribution
-            A0_1 = _momentumSystemA.get_value(cellid1,cellid1);
-            ucell1 = w1 * ( _cellVelocityField.get_internal()[cellid1] + (1.0/A0_1 )*cell1.get_volume()*cellPressureGradients[cellid1] );
+            A0_1 = _momentumSystemA.get_value(cell1->get_id(),cell1->get_id());
+            ucell1 = w1 * ( _cellVelocityField.get_internal()[cell1->get_id()] + (1.0/A0_1 )*cell1->get_volume()*cellPressureGradients[cell1->get_id()] );
             // Cell 2 contribution
-            A0_2 = _momentumSystemA.get_value(cellid2,cellid2);
-            ucell2 = (1.0 - w1) * ( _cellVelocityField.get_internal()[cellid2] + (1.0/A0_2 )*cell2.get_volume()*cellPressureGradients[cellid2] );
+            A0_2 = _momentumSystemA.get_value(cell2->get_id(),cell2->get_id());
+            ucell2 = (1.0 - w1) * ( _cellVelocityField.get_internal()[cell2->get_id()] + (1.0/A0_2 )*cell2->get_volume()*cellPressureGradients[cell2->get_id()] );
             // Pressure contribution
-            udp = (w1*(cell1.get_volume()/A0_1) + (1.0-w1)*(cell2.get_volume()/A0_2)) * facePressureGradients[f.get_id()];
+            udp = (w1*(cell1->get_volume()/A0_1) + (1.0-w1)*(cell2->get_volume()/A0_2)) * facePressureGradients[f->get_id()];
 
             // Total Cell Velocity
-            // std::cout << "    cellVelocity1: " << _cellVelocityField.get_internal()[cellid1] << "      cellVelocity2: " << _cellVelocityField.get_internal()[cellid2] << std::endl;
+            // std::cout << "    cellVelocity1: " << _cellVelocityField.get_internal()[cell1->get_id()] << "      cellVelocity2: " << _cellVelocityField.get_internal()[cell2->get_id()] << std::endl;
             // std::cout << "    ucell1: " << ucell1 << "      ucell2: " << ucell2 << "      udp: " << udp << std::endl;
             faceVelocity = ucell1 + ucell2 + udp;
             
@@ -176,59 +172,59 @@ void SOLVER::SIMPLE::computeFaceMassFlux()
     std::vector<double> mdotf = _faceMassFluxField.get_internal();
 
     // Initializing variables
-    MESH::element cell1;
-    MESH::element cell2;
+    std::shared_ptr<MESH::element> cell1;
+    std::shared_ptr<MESH::element> cell2;
     MATH::Vector faceNormal;
     
 
     // Loop over faces
-    for (const MESH::face& f : _mesh->get_faces() ) {
+    for (const std::shared_ptr<MESH::face>& f : _mesh->get_faces() ) {
 
-        cell1 = _mesh->get_elements()[f.get_elements()[0]];
+        cell1 = f->get_elements()[0];
 
         // outward pointing normal
-        faceNormal = cell1.get_normals()[cell1==f];
+        faceNormal = cell1->get_normals()[*cell1==*f];
 
         // Boundary Face
-        if (f.is_boundaryFace()) {
+        if (f->is_boundaryFace()) {
             
 
             // Returns mass flux going INTO the cell
-            mdotf[f.get_id()] = _BCs[f.get_elements()[1]]->get_massFlux(f.get_id());
+            mdotf[f->get_id()] = _BCs[f->get_boundaryID()]->get_massFlux(f->get_id());
 
             // Update mass flux direction matrix
-            if (mdotf[f.get_id()] > 0.0) {
-                _massFluxDirection.set_value(f.get_elements()[0],f.get_id(),1.0);
+            if (mdotf[f->get_id()] > 0.0) {
+                _massFluxDirection.set_value(f->get_elements()[0]->get_id(),f->get_id(),1.0);
             }
             else {
-                _massFluxDirection.set_value(f.get_elements()[0],f.get_id(),-1.0);
+                _massFluxDirection.set_value(f->get_elements()[0]->get_id(),f->get_id(),-1.0);
             }
 
             // Only track absolute value of mass flux here
-            mdotf[f.get_id()] = abs(mdotf[f.get_id()]);
+            mdotf[f->get_id()] = abs(mdotf[f->get_id()]);
         }
         // Internal Face
         else {
             // Get face cells
-            cell2 = _mesh->get_elements()[f.get_elements()[1]];
+            cell2 = f->get_elements()[1];
 
             // Calculate mass flux INTO cell1
-            mdotf[f.get_id()] = - (faceVelocities[f.get_id()] * rho * faceNormal * f.get_volume());
+            mdotf[f->get_id()] = - (faceVelocities[f->get_id()] * rho * faceNormal * f->get_volume());
 
             // Update mass flux direction matrix
-            if (mdotf[f.get_id()] >= 0.0) {
+            if (mdotf[f->get_id()] >= 0.0) {
                 // Mass flux INTO first face
-                _massFluxDirection.set_value(f.get_elements()[0],f.get_id(),1.0);
-                _massFluxDirection.set_value(f.get_elements()[1],f.get_id(),-1.0);
+                _massFluxDirection.set_value(f->get_elements()[0]->get_id(),f->get_id(),1.0);
+                _massFluxDirection.set_value(f->get_elements()[1]->get_id(),f->get_id(),-1.0);
             }
             else {
                 // Mass flux OUT OF first face
-                _massFluxDirection.set_value(f.get_elements()[0],f.get_id(),-1.0);
-                _massFluxDirection.set_value(f.get_elements()[1],f.get_id(),1.0);
+                _massFluxDirection.set_value(f->get_elements()[0]->get_id(),f->get_id(),-1.0);
+                _massFluxDirection.set_value(f->get_elements()[1]->get_id(),f->get_id(),1.0);
             }
 
             // Only track absolute value of mass flux here
-            mdotf[f.get_id()] = abs(mdotf[f.get_id()]);
+            mdotf[f->get_id()] = abs(mdotf[f->get_id()]);
         }
         
     }
@@ -247,10 +243,9 @@ void SOLVER::SIMPLE::updateMomentumMatrix()
     double mdotf;       // mass flux through face
     double dface;        // delta_face value: distance between nodes for non-boundary, distance to face for boundary
     int faceidx;        // face index
-    int nbidx;          // neighbor index 
 
-    MESH::element cell;     // cell
-    MESH::element cellnb;   // cell neighbor
+    std::shared_ptr<MESH::element> cell;     // cell
+    std::shared_ptr<MESH::element> cellnb;   // cell neighbor
 
     // reinitialize momentum matrix
     _momentumSystemA = MATH::matrixCSR(_mesh->get_elements().size(),_mesh->get_elements().size());
@@ -260,33 +255,29 @@ void SOLVER::SIMPLE::updateMomentumMatrix()
         A0 = 0;
         cell = _mesh->get_elements()[c];
         // Loop through neighbor elements
-        for (int nb=0 ; nb<cell.get_faces().size() ; nb++ ) {
+        for (int nb=0 ; nb<cell->get_faces().size() ; nb++ ) {
 
             // Get mass flux INTO face
-            faceidx = cell.get_faces()[nb].get_id(); 
+            faceidx = cell->get_faces()[nb]->get_id(); 
             // boundary or not doesn't matter, that should be accounted for in calculation of mass flux field (Mass flux INTO cell)
             mdotf = _faceMassFluxField.get_internal()[faceidx] * _massFluxDirection.get_value(c,faceidx);
-
-            // Calculate cell neighbor coefficient if the neighbor is not a boundary
-            nbidx = cell.get_faces()[nb].get_elements()[0];
             
-            if (nbidx >= 0) 
+            if ( !cell->get_faces()[nb]->is_boundaryFace() ) 
             // Internal Element
             {
-
                 // Neighbor cell
-                cellnb = _mesh->get_elements()[nbidx];
+                cellnb = cell->get_neighbor(nb);
 
                 // Difference between cell and neighbor centroid, NORMAL TO THE FACE
                 dface = _faceNormalDeltas[faceidx];
 
                 // Neighbor (off diagonal) coefficients
-                Anb = -(abs(mdotf)-mdotf)/2.0 - mu*cell.get_faces()[nb].get_volume()/dface;
+                Anb = -(abs(mdotf)-mdotf)/2.0 - mu*cell->get_faces()[nb]->get_volume()/dface;
                 // Update neighbor coefficient
-                _momentumSystemA.set_value(c,nbidx,Anb);
+                _momentumSystemA.set_value(c,cellnb->get_id(),Anb);
 
                 // Incremement cell coefficient (FIRST ORDER UPWIND DIFFERENCING USED HERE)
-                A0 += (abs(mdotf)+mdotf)/2.0 + mu*cell.get_faces()[nb].get_volume()/dface;
+                A0 += (abs(mdotf)+mdotf)/2.0 + mu*cell->get_faces()[nb]->get_volume()/dface;
             }
             else
             // Boundary Face
@@ -294,7 +285,7 @@ void SOLVER::SIMPLE::updateMomentumMatrix()
                 // Use distance to face for delta_face measurement 
                 dface = _faceNormalDeltas[faceidx];
                 // Update diagonal term, but no change to source term
-                A0 += (abs(mdotf)+mdotf)/2.0 + mu*cell.get_faces()[nb].get_volume()/dface;
+                A0 += (abs(mdotf)+mdotf)/2.0 + mu*cell->get_faces()[nb]->get_volume()/dface;
             }
         }
         // Update Cell Coefficient
@@ -319,7 +310,7 @@ void SOLVER::SIMPLE::updateMomentumRHS()
     MATH::Vector f_tangent;
     MATH::Vector skewVelocity;
     double faceSkew;
-    MESH::face f;
+    std::shared_ptr<MESH::face> f;
     double mdotf;
     MATH::Vector faceVelocity;
 
@@ -330,44 +321,43 @@ void SOLVER::SIMPLE::updateMomentumRHS()
     // Sources due to boundary conditions
     MATH::Vector S_bc;
 
-    for (const MESH::element& cell : _mesh->get_elements()) {
+    for (const std::shared_ptr<MESH::element>& cell : _mesh->get_elements()) {
         // std::cout << "Cell Coordinates: " << cell.get_centroid() << std::endl;
-        for (int fi=0 ; fi<cell.get_faces().size() ; fi++) {
+        for (int fi=0 ; fi<cell->get_faces().size() ; fi++) {
             
-            f = cell.get_faces()[fi];
+            f = cell->get_faces()[fi];
 
             // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
             // SKEW SOURCES
 
             // Difference in nodes normalized by distance normal to face between cells
-            skewVelocity = nodeVelocities[f.get_nodeIDs()[0]] - nodeVelocities[f.get_nodeIDs()[1]];
+            skewVelocity = nodeVelocities[f->get_nodeIDs()[0]] - nodeVelocities[f->get_nodeIDs()[1]];
             skewVelocity = skewVelocity ;
 
             // face tangent
-            f_tangent = _mesh->get_nodes()[f.get_nodeIDs()[0]].get_coordinates() - _mesh->get_nodes()[f.get_nodeIDs()[1]].get_coordinates();
+            f_tangent = f->get_nodes()[0]->get_coordinates() - f->get_nodes()[1]->get_coordinates();
             f_tangent = f_tangent / f_tangent.getL2Norm();
 
             // Skewness: dot product of face tangent and cell centroid vectors
-            if (f.is_boundaryFace()) {
-                faceSkew = f_tangent * (cell.get_centroid() - f.get_centroid());
+            if (f->is_boundaryFace()) {
+                faceSkew = f_tangent * (cell->get_centroid() - f->get_centroid());
             }
             else {
-                faceSkew = f_tangent * (cell.get_centroid() - _mesh->get_elements()[f.get_elements()[0]].get_centroid());
+                faceSkew = f_tangent * (cell->get_centroid() - cell->get_neighbor(fi)->get_centroid());
             }
 
             // Face Skew Source
-            S_skew = -1.0 *(skewVelocity/_faceNormalDeltas[f.get_id()]) * faceSkew * mu;
+            S_skew = -1.0 *(skewVelocity/_faceNormalDeltas[f->get_id()]) * faceSkew * mu;
 
             // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
             // BOUNDARY SOURCES
-            if (f.is_boundaryFace()) {
+            if (f->is_boundaryFace()) {
                 // Get face mass flux INTO the cell
-                mdotf = _faceMassFluxField.get_internal()[f.get_id()] * _massFluxDirection.get_value(cell.get_id(),f.get_id());
+                mdotf = _faceMassFluxField.get_internal()[f->get_id()] * _massFluxDirection.get_value(cell->get_id(),f->get_id());
                 // Get face velocity
-                //    NOTE: For faces contained in elements, only the second element ID is stored (hence .get_elements()[0])
-                faceVelocity = _BCs[f.get_elements()[0]]->get_velocity(f.get_id());
+                faceVelocity = _BCs[f->get_boundaryID()]->get_velocity(f->get_id());
 
-                S_bc = faceVelocity * ( (abs(mdotf)-mdotf)/2.0 + mu*cell.get_faces()[fi].get_volume()/_faceNormalDeltas[f.get_id()] );
+                S_bc = faceVelocity * ( (abs(mdotf)-mdotf)/2.0 + mu*cell->get_faces()[fi]->get_volume()/_faceNormalDeltas[f->get_id()] );
             }
             else {
                 S_bc = MATH::Vector(_mesh->get_dimension(),0.0);
@@ -376,7 +366,7 @@ void SOLVER::SIMPLE::updateMomentumRHS()
 
             // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * 
             // PRESSURE SOURCES
-            S_p = -1.0 * _facePressureField.get_internal()[f.get_id()] * cell.get_normals()[fi] * f.get_volume();
+            S_p = -1.0 * _facePressureField.get_internal()[f->get_id()] * cell->get_normals()[fi] * f->get_volume();
             // std::cout << "     Face Normal: " <<cell.get_normals()[fi] << "     Face Coordinates: " << f.get_centroid() << "     Face Volume: " << 
             //         f.get_volume() << "        Face Pressure: " << _facePressureField.get_internal()[f.get_id()] << std::endl;
             // S_p = MATH::Vector(_mesh->get_dimension(),0.0);
@@ -385,9 +375,9 @@ void SOLVER::SIMPLE::updateMomentumRHS()
             // Total Sources
             // std::cout << "     Sx: " << Sx[cell.get_id()] << std::endl;
             // std::cout << "           " << S_p[0] << " + " << S_skew[0] << " + " << S_bc[0] << std::endl;
-            Sx[cell.get_id()] += S_p[0] + S_skew[0] + S_bc[0];
-            Sy[cell.get_id()] += S_p[1] + S_skew[1] + S_bc[1];
-            if (_mesh->get_dimension() == 3) Sz[cell.get_id()] += S_p[2] + S_skew[2] + S_bc[2];
+            Sx[cell->get_id()] += S_p[0] + S_skew[0] + S_bc[0];
+            Sy[cell->get_id()] += S_p[1] + S_skew[1] + S_bc[1];
+            if (_mesh->get_dimension() == 3) Sz[cell->get_id()] += S_p[2] + S_skew[2] + S_bc[2];
 
         }
     }
@@ -495,11 +485,11 @@ void SOLVER::SIMPLE::solveMomentumSystem()
     // Assign values back to velocity field
     std::vector<MATH::Vector> cellVelocities(_mesh->get_elements().size());
     MATH::Vector v(_mesh->get_dimension());
-    for (const MESH::element& cell : _mesh->get_elements()) {
-        v[0] = x[cell.get_id()];
-        v[1] = y[cell.get_id()];
-        if (_mesh->get_dimension() == 3) v[2] = z[cell.get_id()];
-        cellVelocities[cell.get_id()] = v;
+    for (const std::shared_ptr<MESH::element>& cell : _mesh->get_elements()) {
+        v[0] = x[cell->get_id()];
+        v[1] = y[cell->get_id()];
+        if (_mesh->get_dimension() == 3) v[2] = z[cell->get_id()];
+        cellVelocities[cell->get_id()] = v;
     }
 
     _cellVelocityField.set_internal(cellVelocities);
@@ -514,9 +504,9 @@ void SOLVER::SIMPLE::SolvePressureCorrection()
     MATH::Vector mdot_imb(_mesh->get_elements().size());
 
     // pressure correction equation RHS has mass imbalance into cell
-    for (const MESH::element& cell : _mesh->get_elements()) {
-        for (const MESH::face& f : cell.get_faces()) {
-            mdot_imb[cell.get_id()] += _faceMassFluxField.get_internal()[f.get_id()] * _massFluxDirection.get_value(cell.get_id(),f.get_id());
+    for (const std::shared_ptr<MESH::element>& cell : _mesh->get_elements()) {
+        for (const std::shared_ptr<MESH::face>& f : cell->get_faces()) {
+            mdot_imb[cell->get_id()] += _faceMassFluxField.get_internal()[f->get_id()] * _massFluxDirection.get_value(cell->get_id(),f->get_id());
         }
     }
 
@@ -528,33 +518,33 @@ void SOLVER::SIMPLE::SolvePressureCorrection()
     double offdiag;
     double w1;
     double mdotbc;
-    MESH::element cell2;
+    std::shared_ptr<MESH::element> cell2;
     MATH::matrixCSR pc_matrix(_mesh->get_elements().size(),_mesh->get_elements().size());
-    for (const MESH::element& cell : _mesh->get_elements()) {
+    for (const std::shared_ptr<MESH::element>& cell : _mesh->get_elements()) {
         diag = 0.0;
-        for (const MESH::face& f : cell.get_faces()) {
-            if (f.is_boundaryFace()) {
+        for (const std::shared_ptr<MESH::face>& f : cell->get_faces()) {
+            if (f->is_boundaryFace()) {
                 // Pressure correction is solving for mass flux into cell
-                mdotbc = rho * (_faceVelocityField.get_internal()[f.get_id()] * cell.get_normals()[cell==f]);
-                mdot_imb[cell.get_id()] -= mdotbc;
+                mdotbc = rho * (_faceVelocityField.get_internal()[f->get_id()] * cell->get_normals()[*cell==*f]);
+                mdot_imb[cell->get_id()] -= mdotbc;
                 continue; // (fine to skip for walls for now, need to fix later...)
             }
             else {
-                w1 = cell.get_distanceWeights()[cell==f];
+                w1 = cell->get_distanceWeights()[*cell==*f];
                 // Note: faces in cell only contain opposing element
-                cell2 = _mesh->get_elements()[f.get_elements()[0]];
+                cell2 = cell->get_neighbor(*cell==*f);
 
                 // Assign off diagonal
-                offdiag = - (        w1  * cell.get_volume()  / _momentumSystemA.get_value(cell.get_id() ,cell.get_id()  ) 
-                              + (1.0-w1) * cell2.get_volume() / _momentumSystemA.get_value(cell2.get_id(),cell2.get_id() ) 
-                            ) * rho * f.get_volume() / _faceNormalDeltas[f.get_id()];
-                pc_matrix.set_value(cell.get_id(),cell2.get_id(),offdiag);
+                offdiag = - (        w1  * cell->get_volume()  / _momentumSystemA.get_value(cell->get_id() ,cell->get_id()  ) 
+                              + (1.0-w1) * cell2->get_volume() / _momentumSystemA.get_value(cell2->get_id(),cell2->get_id() ) 
+                            ) * rho * f->get_volume() / _faceNormalDeltas[f->get_id()];
+                pc_matrix.set_value(cell->get_id(),cell2->get_id(),offdiag);
 
                 // Increment diagonal
                 diag += -offdiag;
             }
         }
-        pc_matrix.set_value(cell.get_id(),cell.get_id(),diag);
+        pc_matrix.set_value(cell->get_id(),cell->get_id(),diag);
     }
 
 
@@ -583,8 +573,8 @@ void SOLVER::SIMPLE::SolvePressureCorrection()
 
     // Correct Pressures
     std::vector<double> new_pressure(_mesh->get_elements().size());
-    for (const MESH::element& cell : _mesh->get_elements()) {
-        new_pressure[cell.get_id()] = _cellPressureField.get_internal()[cell.get_id()] + _pressureCorrection[cell.get_id()];
+    for (const std::shared_ptr<MESH::element>& cell : _mesh->get_elements()) {
+        new_pressure[cell->get_id()] = _cellPressureField.get_internal()[cell->get_id()] + _pressureCorrection[cell->get_id()];
     }
     _cellPressureField.set_internal(new_pressure);
 
@@ -604,20 +594,20 @@ void SOLVER::SIMPLE::correctCellVelocity()
     std::vector<MATH::Vector> vnew = _cellVelocityField.get_internal();
 
     // Loop through each cell and correct
-    for (const MESH::element& cell : _mesh->get_elements()) 
+    for (const std::shared_ptr<MESH::element>& cell : _mesh->get_elements()) 
     {
         MATH::Vector vc(_mesh->get_dimension());
         // std::cout << "centroid: " << cell.get_centroid() << std::endl;
-        for (int fi=0 ; fi<cell.get_faces().size() ; fi++) {
+        for (int fi=0 ; fi<cell->get_faces().size() ; fi++) {
             // std::cout << "    face normal: " << cell.get_normals()[fi] << "     pc: " << pcface[cell.get_faces()[fi].get_id()] << std::endl;
             //          (face pressure correction)              (face area)                         (OUTWARD pointing face normal)
-            vc = vc + ( pcface[cell.get_faces()[fi].get_id()] * cell.get_faces()[fi].get_volume() * (cell.get_normals()[fi]) );
+            vc = vc + ( pcface[cell->get_faces()[fi]->get_id()] * cell->get_faces()[fi]->get_volume() * (cell->get_normals()[fi]) );
         }
         //          Divide by A0
-        vc = vc * (-1.0/_momentumSystemA.get_value(cell.get_id(),cell.get_id()));
+        vc = vc * (-1.0/_momentumSystemA.get_value(cell->get_id(),cell->get_id()));
         
         // Correct velocities (relaxation done to pressure correction)
-        vnew[cell.get_id()] = vnew[cell.get_id()] + vc;
+        vnew[cell->get_id()] = vnew[cell->get_id()] + vc;
     }
 
     // Set new velocities
@@ -631,57 +621,57 @@ void SOLVER::SIMPLE::correctFaceMassFlux()
     // std::vector<double> mdotf_old = _faceMassFluxField.get_internal();
     std::vector<double> mdotf = _faceMassFluxField.get_internal();
     std::vector<double> mdotf_cor(_mesh->get_faces().size(),0.0);
-    MESH::element cell1;
-    MESH::element cell2;
+    std::shared_ptr<MESH::element> cell1;
+    std::shared_ptr<MESH::element> cell2;
     double w1;
 
 
 
-    for (const MESH::face& f : _mesh->get_faces()) {
+    for (const std::shared_ptr<MESH::face>& f : _mesh->get_faces()) {
 
         // Re-directionalize mass flux
         //          mass flux relative to cell 1: i.e. mdotf > 0 -> mass flux INTO cell 1
-        mdotf[f.get_id()] *= _massFluxDirection.get_value(f.get_elements()[0],f.get_id());
+        mdotf[f->get_id()] *= _massFluxDirection.get_value(f->get_elements()[0]->get_id(),f->get_id());
 
-        if (f.is_boundaryFace()) {
+        if (f->is_boundaryFace()) {
             // Mass flux at the boundary, going INTO the cell
-            mdotf[f.get_id()] = _BCs[f.get_elements()[1]]->get_massFlux(f.get_id());
+            mdotf[f->get_id()] = _BCs[f->get_boundaryID()]->get_massFlux(f->get_id());
 
-            if (mdotf[f.get_id()] > 0.0) {
-                _massFluxDirection.set_value(f.get_elements()[0],f.get_id(),1.0);
+            if (mdotf[f->get_id()] > 0.0) {
+                _massFluxDirection.set_value(f->get_elements()[0]->get_id(),f->get_id(),1.0);
             }
             else {
-                _massFluxDirection.set_value(f.get_elements()[0],f.get_id(),-1.0);
+                _massFluxDirection.set_value(f->get_elements()[0]->get_id(),f->get_id(),-1.0);
             }
         }
         else
         {
-            cell1 = _mesh->get_elements()[f.get_elements()[0]];
-            cell2 = _mesh->get_elements()[f.get_elements()[1]];
+            cell1 = f->get_elements()[0];
+            cell2 = f->get_elements()[1];
 
-            w1 = cell1.get_distanceWeights()[cell1==f];
+            w1 = cell1->get_distanceWeights()[*cell1==*f];
 
             // Calculate mass flux correction going INTO cell 1
-            mdotf_cor[f.get_id()] = -1.0 * rho*f.get_volume() 
-                                        * (w1*cell1.get_volume()/_momentumSystemA.get_value(cell1.get_id(),cell1.get_id()) 
-                                                    + (1-w1)*cell2.get_volume()/_momentumSystemA.get_value(cell2.get_id(),cell2.get_id()))
-                                        * ( _pressureCorrection[cell2.get_id()] - _pressureCorrection[cell1.get_id()]) / _faceNormalDeltas[f.get_id()] ;
+            mdotf_cor[f->get_id()] = -1.0 * rho*f->get_volume() 
+                                        * (w1*cell1->get_volume()/_momentumSystemA.get_value(cell1->get_id(),cell1->get_id()) 
+                                                    + (1-w1)*cell2->get_volume()/_momentumSystemA.get_value(cell2->get_id(),cell2->get_id()))
+                                        * ( _pressureCorrection[cell2->get_id()] - _pressureCorrection[cell1->get_id()]) / _faceNormalDeltas[f->get_id()] ;
 
             // Correct face
-            mdotf[f.get_id()] += mdotf_cor[f.get_id()];
+            mdotf[f->get_id()] += mdotf_cor[f->get_id()];
 
             // std::cout << cell1.get_centroid() << "   :   " << f.get_normal() << "   :   " << mdotf[f.get_id()] << std::endl;
 
             // Update mass flux direction
-            if (mdotf[f.get_id()] > 0.0) {
+            if (mdotf[f->get_id()] > 0.0) {
                 // Mass flux going INTO the first cell
-                _massFluxDirection.set_value(f.get_elements()[0],f.get_id(),1.0);
-                _massFluxDirection.set_value(f.get_elements()[1],f.get_id(),-1.0);
+                _massFluxDirection.set_value(f->get_elements()[0]->get_id(),f->get_id(),1.0);
+                _massFluxDirection.set_value(f->get_elements()[1]->get_id(),f->get_id(),-1.0);
             }
             else {
                 // Mass flux going OUT OF the first cell
-                _massFluxDirection.set_value(f.get_elements()[0],f.get_id(),-1.0);
-                _massFluxDirection.set_value(f.get_elements()[1],f.get_id(),1.0);
+                _massFluxDirection.set_value(f->get_elements()[0]->get_id(),f->get_id(),-1.0);
+                _massFluxDirection.set_value(f->get_elements()[1]->get_id(),f->get_id(),1.0);
             }
 
         }

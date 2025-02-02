@@ -17,6 +17,7 @@
 #include <iostream>
 #include <sstream>
 #include <unordered_map>
+#include <algorithm>
 
 #include "Vector.hh"
 #include "topology.hh"
@@ -70,6 +71,33 @@ class element;
 class face;
 class Boundary;
 
+
+/*------------------------------------------------------------------------*\
+**  Supporting function to return a vector of locked pointers
+\*------------------------------------------------------------------------*/
+template<typename T>
+std::vector<std::shared_ptr<T>> return_shared(std::vector<std::weak_ptr<T>>* weakPtrs) 
+{
+    if (!weakPtrs) return {}; // Handle nullptr input safely
+
+    // Initialize vector of shared pointers
+    std::vector<std::shared_ptr<T>> sharedPtrs;
+    sharedPtrs.reserve(weakPtrs->size());
+
+    // Convert weak_ptrs to shared_ptrs, filtering out expired ones
+    weakPtrs->erase(std::remove_if(weakPtrs->begin(), weakPtrs->end(),
+        [&](std::weak_ptr<T>& weakPtr) {
+            if (auto sharedPtr = weakPtr.lock()) {
+                sharedPtrs.push_back(sharedPtr);
+                return false; // Keep valid weak_ptrs
+            }
+            return true; // Remove expired weak_ptrs
+        }),
+        weakPtrs->end());
+
+    return sharedPtrs;
+}
+
 /*------------------------------------------------------------------------*\
 **  Class node Declaration
 \*------------------------------------------------------------------------*/
@@ -88,22 +116,22 @@ public:
 
     // Member Functions
         // Calculate distance weights to elements, using vector of all elements in mesh
-        void calculateElementDistanceWeights(const std::vector<element>*);
+        void calculateElementDistanceWeights();
         // Check if boundary node
         bool is_boundaryNode() const { return _onBoundary; };
 
     // get methods
         int get_id() const { return _id; };
         MATH::Vector get_coordinates() const { return _coordinates; };
-        std::vector<int> get_elements() const { return _elements; };
-        std::vector<int> get_faces() const { return _faces; };
+        std::vector<std::shared_ptr<element>> get_elements() { return return_shared(&_elements); };
+        std::vector<std::shared_ptr<face>> get_faces() { return return_shared(&_faces); };
         std::vector<double> get_distanceWeights() const { return _distanceWeights; };
 
     // set methods
-        void set_elements(std::vector<int> elements) { _elements = elements; };
-        void add_element(int element) { _elements.push_back(element); };
-        void set_faces(std::vector<int> faces) { _faces = faces; };
-        void add_face(int face) { _faces.push_back(face); };
+        void set_elements(std::vector<std::weak_ptr<element>> elements) { _elements = elements; };
+        void add_element(std::weak_ptr<element> element) { _elements.push_back(element); };
+        void set_faces(std::vector<std::weak_ptr<face>> faces) { _faces = faces; };
+        void add_face(std::weak_ptr<face> face) { _faces.push_back(face); };
         void set_boundary(bool onBoundary) { _onBoundary = onBoundary; };
 
     // Operator Overloading
@@ -124,9 +152,9 @@ private:
         // Node coordinates
         MATH::Vector _coordinates;
         // Elements
-        std::vector<int> _elements{};
+        std::vector<std::weak_ptr<element>> _elements{};
         // Faces 
-        std::vector<int> _faces{};
+        std::vector<std::weak_ptr<face>> _faces{};
         // distance weight to elements
         std::vector<double> _distanceWeights;
         // distance weight to faces
@@ -147,9 +175,9 @@ public:
         // instantiate from vector of node IDs
         mesh_entity(int, elementTypeEnum, std::vector<int>, bool subElement=false);
         // instantiate from vector of nodes
-        mesh_entity(int, elementTypeEnum, std::vector<node>, bool subElement=false);
+        mesh_entity(int, elementTypeEnum, std::vector<std::weak_ptr<node>>, bool subElement=false);
         // instantiate from vector of faces
-        mesh_entity(int, elementTypeEnum, std::vector<face>, bool subElement=false);
+        mesh_entity(int, elementTypeEnum, std::vector<std::weak_ptr<face>>, bool subElement=false);
     
     // Member Functions
         // initialize mesh entity
@@ -166,13 +194,13 @@ public:
         void hash();
 
     // Set Methods
-        void set_nodes(std::vector<node> nodes) { _nodes = nodes; };
+        void set_nodes(std::vector<std::weak_ptr<node>> nodes) { _nodes = nodes; };
         void set_id(int id) { _id = id; };
 
     // Get Methods
         const int& get_id() const { return _id; };
         const elementTypeEnum& get_type() const { return _elementType; };
-        const std::vector<node>& get_nodes() const { return _nodes; };
+        const std::vector<std::shared_ptr<node>> get_nodes() { return return_shared(&_nodes); };
         const double& get_volume() const { return _volume; };
         const std::vector<int>& get_nodeIDs() const { return _nodeIDs; };
         const MATH::Vector& get_centroid() const { return _centroid; };
@@ -180,7 +208,7 @@ public:
 
     // Operator Overloading
         // Check if cell contains sub-element
-        int operator==(const mesh_entity& other) const;
+        int operator==(const mesh_entity&) const;
 
 protected:
     // Member data
@@ -189,7 +217,7 @@ protected:
         // Element type
         elementTypeEnum _elementType;
         // node vector
-        std::vector<node> _nodes;
+        std::vector<std::weak_ptr<node>> _nodes;
         // cell centroid
         MATH::Vector _centroid;
         // true/false sub-element
@@ -200,6 +228,8 @@ protected:
         double _volume;                 // 1D: width,       2D: area,   3D: volume
         // hash object for element comparisons
         std::string seed;
+
+    // 
 };
 
 
@@ -217,35 +247,34 @@ public:
         // Default constructor: invalid face
         face() : mesh_entity() {};
         // Copy from element class
-        face(mesh_entity, bool boundaryFace=false);
+        explicit face(mesh_entity, bool boundaryFace=false);
         // instantiate from vector of node IDs
         face(int, elementTypeEnum, std::vector<int>, bool subElement=true, bool boundaryFace=false);
         // instantiate from vector of nodes
-        face(int, elementTypeEnum, std::vector<node>, bool subElement=true, bool boundaryFace=false);
+        face(int, elementTypeEnum, std::vector<std::weak_ptr<node>>, bool subElement=true, bool boundaryFace=false);
 
     // Member Functions
         // Initialize element
         void initialize() override; 
 
     // Set methods
-        void set_elements(std::vector<int> elements) { _elements = elements; };
-        void add_element(int element) { _elements.push_back(element); };
-        void set_boundaryFace(bool bface) { _boundaryFace = bface; };
-        void set_normal(MATH::Vector normal) { _normal = normal; };
+        void set_elements(std::vector<std::weak_ptr<element>> elements) { _elements = elements; };
+        void add_element(std::weak_ptr<element> element) { _elements.push_back(element); };
+        void set_boundary(int boundaryID) { _boundaryID = boundaryID; _boundaryFace = true; };
 
     // Get methods
-        const std::vector<int>& get_elements() const { return _elements; };
+        const std::vector<std::shared_ptr<element>> get_elements() { return return_shared(&_elements); };
+        std::shared_ptr<element> get_other_element(element);
         const bool& is_boundaryFace() const { return _boundaryFace; };
-        const MATH::Vector& get_normal() const { return _normal; };
+        const int& get_boundaryID() const { return _boundaryID; };
 
 private:
     // Private member data
         // Elements attached to this faces
-        std::vector<int> _elements {};
-        // If face is a boundary face
-        bool _boundaryFace;
-        // Normal corresponds to first element's outward facing normal
-        MATH::Vector _normal;
+        std::vector<std::weak_ptr<element>> _elements {};
+        // If face is a boundary face (default to no boundary)
+        bool _boundaryFace = false;
+        int _boundaryID;
 };
 
 
@@ -265,43 +294,52 @@ public:
         // instantiate from vector of node IDs
         element(int, elementTypeEnum, std::vector<int>, bool subElement=false);
         // instantiate from vector of nodes
-        element(int, elementTypeEnum, std::vector<node>, bool subElement=false);
+        element(int, elementTypeEnum, std::vector<std::weak_ptr<node>>, bool subElement=false);
         // instantiate from vector of faces
-        element(int, elementTypeEnum, std::vector<face>, bool subElement=false);
+        element(int, elementTypeEnum, std::vector<std::weak_ptr<face>>, bool subElement=false);
 
     // Member Functions
         // initialize element
         void initialize() override;
+        // Initialize element interior
+        void initializeInterior();
+        // Initialize element exterior
+        void initializeExterior();
+        
         // get sub elements of element
-        void determineSubElements();
+        std::vector<face> determineSubElements();
         // Calculate element outward facing normal (for sub-element)
         void calculateOutwardNormals();
         // Calculate face distance weight
-        void calculateFaceDistanceWeight(element&);
+        void calculateFaceDistanceWeights();
+        // Add face to element
+        bool add_face(std::weak_ptr<face> face);
+        // Get element neighbor from LOCAL face index
+        std::shared_ptr<element> get_neighbor(unsigned int faceIdx);
 
     // set methods
         void set_subElement(bool subElement) { _subElement = subElement; };
-        void set_face_id(int faceIdx, int faceID) { _faces[faceIdx].set_id(faceID); };
-        void set_face_connection(int faceIdx, int neighborID) { _faces[faceIdx].set_elements({neighborID}); };
-        void set_boundaryFace(int faceIdx) { _faces[faceIdx].set_boundaryFace(true); };
+        // void set_face_connection(int faceIdx, int neighborID) { _faces[faceIdx]->set_elements({neighborID}); };
 
     // get methods ( [const type& get() const {}] returns a const reference, i.e. reference to data to avoid copying data)
-        const std::vector<face>& get_faces() const { return _faces; };
+        const std::vector<std::shared_ptr<face>> get_faces() { return return_shared(&_faces); };
         const std::vector<MATH::Vector>& get_normals() const { return _normals; };
         const std::vector<double>& get_distanceWeights() const { return _distanceWeights; };
 
     // Operator Overloading
         // Override == operator from base class to check for subelements
-        int operator==(const face&) const;
+        int operator==(const face&);
+        int operator==(const std::shared_ptr<face>& nface);
+        bool operator==(const element&) const;
+        bool operator==(const std::shared_ptr<element>&) const;
 
 protected:
     // Member Data
         // sub-elements
         // NOTE: element faces only have one element ID, which is the ID of the neighbor element
-        std::vector<face> _faces;
+        std::vector<std::weak_ptr<face>> _faces;
         // distance weight to sub-elements, indexed by faces
         std::vector<double> _distanceWeights;
-        
         // Outward facing normals
         std::vector<MATH::Vector> _normals;
         
@@ -319,22 +357,23 @@ class Boundary
 {
 public:
     // Constructors
-        // Construct from name and element vector
-        Boundary(std::string,std::vector<face>,int);
+        // Construct from name, element vector and ID
+        Boundary(std::string,std::vector<std::weak_ptr<face>>,int);
+        // Construct from name, face seed vector and ID
+        Boundary(std::string,std::vector<std::string>,int);
 
     // Public member data
 
     // Member functions
-        void map_global_and_local(int global, int local) { _global2local[global] = local; _local2global[local] = global;};
-        int get_globalID(int localID) const;
-        int get_localID(int globalID) const;
-        // Check if global face index is on boundary
-        bool onBoundary(int globalID) const;
+        void map_global2local(int global, int local) { _global2local[global] = local; };
+        bool add_face(std::weak_ptr<face> face);
+        bool onBoundary(int) const;
 
     // get methods
-        // Get boundary faces
-        std::vector<face>& get_faces() { return _faces; };
-        const std::vector<face>& get_faces() const { return _faces; };
+        // Get pointers to boundary faces
+        const std::vector<std::shared_ptr<face>> get_faces() { return return_shared(&_faces); };
+        // Get face seed vector
+        const std::vector<std::string>& get_faceSeeds() const { return _faceSeeds; };
         // Get boundary name
         const std::string get_name() const { return _name; };
         // Get boundary ID
@@ -348,12 +387,13 @@ protected:
         // Name of boundary condition
         const std::string _name;
         // Boundary condition elements
-        std::vector<face> _faces;
+        std::vector<std::weak_ptr<face>> _faces;
+        // Face seed vector for temporary face creation
+        std::vector<std::string> _faceSeeds;
         // Boundary condition id
         int _bcID;
         // Mapping global face indexes and local face indexes
         std::unordered_map<int, int> _global2local;
-        std::vector<int> _local2global;
 };
 
 }

@@ -39,7 +39,7 @@ MESH::mesh_entity::mesh_entity(int id,elementTypeEnum elementType, std::vector<i
 }
 
 // Construct from node vector
-MESH::mesh_entity::mesh_entity(int id, elementTypeEnum elementType, std::vector<node> nodes, bool subElement)
+MESH::mesh_entity::mesh_entity(int id, elementTypeEnum elementType, std::vector<std::weak_ptr<node>> nodes, bool subElement)
 :
     _id(id),
     _elementType(elementType),
@@ -47,9 +47,11 @@ MESH::mesh_entity::mesh_entity(int id, elementTypeEnum elementType, std::vector<
     _subElement(subElement),
     _centroid({})
 {
+    std::vector<std::shared_ptr<node>> shared_nodes = return_shared(&_nodes);
+
     // Define node IDs from node vector
     for (int i=0 ; i<_nodes.size() ; i++) {
-        _nodeIDs.push_back(_nodes[i].get_id());
+        _nodeIDs.push_back(shared_nodes[i]->get_id());
     }
 
     // Run initialize method
@@ -57,19 +59,21 @@ MESH::mesh_entity::mesh_entity(int id, elementTypeEnum elementType, std::vector<
 }
 
 // construct from face vector
-MESH::mesh_entity::mesh_entity(int id, elementTypeEnum elementType, std::vector<face> faces, bool subElement)
+MESH::mesh_entity::mesh_entity(int id, elementTypeEnum elementType, std::vector<std::weak_ptr<face>> faces, bool subElement)
 :
     _id(id),
     _elementType(elementType),
     _subElement(subElement),
     _centroid({})
 {
+    std::vector<std::shared_ptr<face>> shared_faces = return_shared(&faces);
+
     // Grab nodes from faces
     for (int i=0 ; i<faces.size() ; i++) {
-        for (int j=0 ; j<faces[i].get_nodes().size() ; j++) {
-            if (std::find(_nodeIDs.begin(), _nodeIDs.end(), faces[i].get_nodes()[j].get_id()) == _nodeIDs.end()) {
-                _nodes.push_back(faces[i].get_nodes()[j]);
-                _nodeIDs.push_back(faces[i].get_nodes()[j].get_id());
+        for (int j=0 ; j<shared_faces[i]->get_nodes().size() ; j++) {
+            if (std::find(_nodeIDs.begin(), _nodeIDs.end(), shared_faces[i]->get_nodes()[j]->get_id()) == _nodeIDs.end()) {
+                _nodes.push_back(shared_faces[i]->get_nodes()[j]);
+                _nodeIDs.push_back(shared_faces[i]->get_nodes()[j]->get_id());
             }
         }
     }
@@ -129,9 +133,12 @@ double MESH::mesh_entity::triArea(std::vector<node> nodes)
 // * * * * * * * * * * * * * *  calculateVolume * * * * * * * * * * * * * * * //
 void MESH::mesh_entity::calculateVolume() 
 {
+    std::vector<std::shared_ptr<node>> nodes = return_shared(&_nodes);
+
     // LINE Volume = Length
     if ( type2dimension[_elementType] == 1 ) {
-        _volume = _nodes[0]*_nodes[1];
+        // Overloaded * operator on two pointers
+        _volume = *nodes[0]* *nodes[1];
     }
 
     // Generalized approach for 2D elements
@@ -139,14 +146,14 @@ void MESH::mesh_entity::calculateVolume()
         // Use Jarvis March to get convex hull
         std::vector<MATH::Vector> coords;
         for (int i=0 ; i<_nodes.size() ; i++) {
-            coords.push_back(_nodes[i].get_coordinates());
+            coords.push_back(nodes[i]->get_coordinates());
         }
         std::vector<int> order = MATH::jarvis_march(coords);
 
         // Use element order to calculate area
         _volume = 0.0;
         for (int i=0 ; i<order.size()-2 ; i++) {
-            _volume += triArea( {_nodes[order[0]],_nodes[order[i+1]],_nodes[order[i+2]]} );
+            _volume += triArea( {*nodes[order[0]],*nodes[order[i+1]],*nodes[order[i+2]]} );
         }
 
     }
@@ -160,11 +167,14 @@ void MESH::mesh_entity::calculateVolume()
 // * * * * * * * * * * * * * * Calculate Cell Centroid * * * * * * * * * * * * * * * //
 void MESH::mesh_entity::calculateCentroid() 
 {
-    MATH::Vector center(_nodes[0].get_coordinates().size(),0.0);
+    // Lock nodes
+    std::vector<std::shared_ptr<node>> nodes = return_shared(&_nodes);
+
+    MATH::Vector center(nodes[0]->get_coordinates().size(),0.0);
     double c = _nodes.size();
     // Just add all the nodes index wise and divide by number of nodes
     for (int i=0 ; i<_nodes.size() ; i++) {
-        center = center + _nodes[i].get_coordinates();
+        center = center + nodes[i]->get_coordinates();
     }
     center = center * (1.0/c);
 
@@ -215,7 +225,7 @@ MESH::face::face(mesh_entity e, bool boundaryFace)
 
 }
 
-MESH::face::face(int id, elementTypeEnum elementType, std::vector<node> nodes, bool subElement, bool boundaryFace)
+MESH::face::face(int id, elementTypeEnum elementType, std::vector<std::weak_ptr<node>> nodes, bool subElement, bool boundaryFace)
 :
     mesh_entity(id, elementType, nodes, subElement),
     _boundaryFace(boundaryFace)
@@ -246,6 +256,21 @@ void MESH::face::initialize() {
 }
 
 
+// * * * * * * * * * * * * * *  get other element of face * * * * * * * * * * * * * * * //
+std::shared_ptr<MESH::element> MESH::face::get_other_element(MESH::element e)
+{
+    assert( !_boundaryFace && "ERROR: Face is on the boundary, no neighbor element");
+    std::vector<std::shared_ptr<element>> elements = get_elements();
+
+    if ( e == *elements[0]) {
+        return elements[1];
+    }
+    else {
+        return elements[0];
+    }
+}
+
+
 /*------------------------------------------------------------------------*\
 **  Class element Implementation
 \*------------------------------------------------------------------------*/
@@ -258,15 +283,15 @@ MESH::element::element(int id,elementTypeEnum elementType, std::vector<int> node
 
 }
 
-MESH::element::element(int id, elementTypeEnum elementType, std::vector<node> nodes, bool subElement)
+MESH::element::element(int id, elementTypeEnum elementType, std::vector<std::weak_ptr<node>> nodes, bool subElement)
 :
     mesh_entity(id,elementType,nodes,subElement)
 {
     // Run initialize method
-    initialize();
+    initializeInterior();
 }
 
-MESH::element::element(int id, elementTypeEnum elementType, std::vector<face> faces, bool subElement)
+MESH::element::element(int id, elementTypeEnum elementType, std::vector<std::weak_ptr<face>> faces, bool subElement)
 :
     mesh_entity(id,elementType,faces,subElement)
 {
@@ -278,33 +303,64 @@ MESH::element::element(int id, elementTypeEnum elementType, std::vector<face> fa
 }
 
 
-// * * * * * * * * * * * * * *  initialize * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * Initialize * * * * * * * * * * * * * * * //
 // Initializer of element class
 void MESH::element::initialize() {
+    initializeInterior();
+    initializeExterior();
+}
+
+// * * * * * * * * * * * * * * Initialize * * * * * * * * * * * * * * * //
+// Initializer of element class
+void MESH::element::initializeInterior() {
+    // Make sure faces are initialized
+    assert(_nodes.size() != 0 && "element::initialize: nodes not initialized! Nodes must be set before element initialization!");
 
     // Calculate cell centroid 
     calculateCentroid();
 
-    // Get faces and distance weights
-    if ( _faces.size() == 0 ) {
-        determineSubElements();
-    }
-    calculateOutwardNormals();
-
-    // Calculate volume and centroid
+    // Calculate cell volume
     calculateVolume();
     
-
     // Hashing for element comparison
     hash();
 }
 
+void MESH::element::initializeExterior() 
+{
+    assert(_faces.size() != 0 && "element::initialize: faces not initialized! Faces must be set before element initialization!");
+    assert(_nodes.size() != 0 && "element::initialize: nodes not initialized! Nodes must be set before element initialization!");
+
+    // Get face normals and distance weights
+    calculateOutwardNormals();
+    calculateFaceDistanceWeights();
+}
+
+
+// * * * * * * * * * * * * * * Add Face * * * * * * * * * * * * * * * //
+bool MESH::element::add_face(std::weak_ptr<face> face) 
+{
+    auto it = std::find_if(_faces.begin(), _faces.end(), [&face](const std::weak_ptr<MESH::face>& f) {
+        // Compare the shared_ptr held by the weak_ptr
+        return f.lock() == face.lock();
+    });
+
+    if (it == _faces.end()) {
+        _faces.push_back(face);
+        return true;
+    }
+    return false;
+}
+
 // * * * * * * * * * * * * * *  determineSubElements * * * * * * * * * * * * * * * //
 // return sub elements of a given element
-void MESH::element::determineSubElements()
+std::vector<MESH::face> MESH::element::determineSubElements()
 {
+    std::vector<MESH::face> faces;
+    std::vector<std::shared_ptr<node>> nodes = return_shared(&_nodes);
+
     // 1D ELEMENT IMPLEMENTATION
-    if ( type2dimension[_elementType] == 1 ) _faces = {};
+    if ( type2dimension[_elementType] == 1 ) faces = {};
 
     // 2D ELEMENT IMPLEMENTATION
     else if ( type2dimension[_elementType] == 2 ) {
@@ -312,17 +368,17 @@ void MESH::element::determineSubElements()
         // First, get order of nodes from Jarvis March
         std::vector<MATH::Vector> coords;
         for (int i=0 ; i<_nodes.size() ; i++) {
-            coords.push_back(_nodes[i].get_coordinates());
+            coords.push_back(nodes[i]->get_coordinates());
         }
         std::vector<int> order = MATH::jarvis_march(coords);
 
         // Now that we have our order, define our sub_elements
         for (int e=0; e<_nodes.size() ; e++) {
             // get list of nodes that make up element
-            std::vector<node> nodes{ _nodes[order[e]] , _nodes[order[(e+1) % _nodes.size()]]}; 
+            std::vector<std::weak_ptr<node>> nodes{ _nodes[order[e]] , _nodes[order[(e+1) % _nodes.size()]]}; 
             // Create sub element
             face subElement(-1, elementTypeEnum::LINE, nodes);
-            _faces.push_back(subElement);
+            faces.push_back(subElement);
         }
     }
 
@@ -335,10 +391,9 @@ void MESH::element::determineSubElements()
         std::cerr << "ERROR: Element type not implemented. Element Type: " << _elementType << std::endl;
     }
 
-    // resize distance weighted vector to size of subelements
-    _distanceWeights.resize(_faces.size(),-1.0);
-
     // 3D ELEMENTS NOT YET IMPLEMENTED
+
+    return faces;
 }
 
 
@@ -346,19 +401,23 @@ void MESH::element::determineSubElements()
 // * * * * * * * * * * * * * * Calculate Cell Normals * * * * * * * * * * * * * * * //
 void MESH::element::calculateOutwardNormals()
 {
+    // Note: we need to use faces and not just nodes so indexes remain consistent
+
+    std::vector<std::shared_ptr<face>> faces = return_shared(&_faces);
+
     std::vector<double> normal;
     for (int i=0 ; i<_faces.size() ; i++) {
         // 2D NORMAL FOR LINES
-        if (_faces[i].get_type() == elementTypeEnum::LINE) {
+        if (faces[i]->get_type() == elementTypeEnum::LINE) {
 
             // Calculate unit normal
-            double nx = _faces[i].get_nodes()[1].get_coordinates()[1] - _faces[i].get_nodes()[0].get_coordinates()[1];
-            double ny = _faces[i].get_nodes()[1].get_coordinates()[0] - _faces[i].get_nodes()[0].get_coordinates()[0];
+            double nx = faces[i]->get_nodes()[1]->get_coordinates()[1] - faces[i]->get_nodes()[0]->get_coordinates()[1];
+            double ny = faces[i]->get_nodes()[1]->get_coordinates()[0] - faces[i]->get_nodes()[0]->get_coordinates()[0];
             double mag = std::sqrt(nx*nx + ny*ny);
             normal = {-nx/mag,ny/mag};
 
             // Ensure normal is pointing outward by taking dot product
-            node centroid_diff = node(-1,_centroid - _faces[i].get_centroid());
+            node centroid_diff = node(-1,_centroid - faces[i]->get_centroid());
             if ( (centroid_diff & node(-1,normal)) > 0.0) {
                 normal = {-normal[0],-normal[1]};
             }
@@ -370,42 +429,99 @@ void MESH::element::calculateOutwardNormals()
 
         // Store normal
         _normals.push_back(normal);
-        _faces[i].set_normal(normal);
     }
-    
-    
 }
 
 
 // * * * * * * * * * * * * * * Face Distance Weight * * * * * * * * * * * * * * * //
-void MESH::element::calculateFaceDistanceWeight(MESH::element &neighborElement)
+void MESH::element::calculateFaceDistanceWeights()
 {
-    // First check which sub-element (if any) elements share
-    for (face& subelement : neighborElement._faces) {
-        int idx = *this == subelement;
-        if (idx != -1) {
-            // Get distance between this element and face
-            MATH::Vector v1 = MATH::Vector(_centroid - subelement.get_centroid());
-            MATH::Vector v2 = MATH::Vector(neighborElement._centroid - subelement.get_centroid());
+    assert( _faces.size() != 0 && "ERROR: faces not initialized! Faces must be set before distance weight calculation!");
+    std::vector<std::shared_ptr<face>> faces = get_faces();
+
+    _distanceWeights = std::vector<double>(_faces.size());
+
+    for (int i=0 ; i<_faces.size() ; i++) {
+        // Calculate boundary distance weight
+        if ( faces[i]->is_boundaryFace() ) 
+        {
+            _distanceWeights[i] = -1.0;
+        }
+        // Calculate interior distance weight
+        else
+        {
+            std::shared_ptr<element> nb = get_neighbor(i);
+            MATH::Vector v1 = MATH::Vector(_centroid - faces[i]->get_centroid());
+            MATH::Vector v2 = MATH::Vector(nb->get_centroid() - faces[i]->get_centroid());
             double d1 = v1.getL2Norm();
             double d2 = v2.getL2Norm();
             
             // Get weighted distance between elements and face
-            _distanceWeights[idx] = (1.0/d1) / ((1.0/d1) + (1.0/d2));
-            neighborElement._distanceWeights[neighborElement == subelement] = (1.0/d2) / ((1.0/d1) + (1.0/d2));
-            return;
+            _distanceWeights[i] = (1.0/d1) / ((1.0/d1) + (1.0/d2)) ;
         }
+        
+        // // First check which sub-element (if any) elements share
+        // for (std::shared_ptr<face> subelement : neighborElement.get_faces()) {
+        //     int idx = *this == *subelement;
+        //     if (idx != -1) {
+        //         // Get distance between this element and face
+        //         MATH::Vector v1 = MATH::Vector(_centroid - subelement->get_centroid());
+        //         MATH::Vector v2 = MATH::Vector(neighborElement._centroid - subelement->get_centroid());
+        //         double d1 = v1.getL2Norm();
+        //         double d2 = v2.getL2Norm();
+                
+        //         // Get weighted distance between elements and face
+        //         _distanceWeights[idx] = (1.0/d1) / ((1.0/d1) + (1.0/d2));
+        //         neighborElement._distanceWeights[neighborElement == *subelement] = (1.0/d2) / ((1.0/d1) + (1.0/d2));
+        //         return;
+        //     }
+        // }
     }
    
 }
 
-// If this is a element, check all sub-elements
-int MESH::element::operator==(const MESH::face& element) const
+// * * * * * * * * * * * * * * Get Neighbor from index * * * * * * * * * * * * * * * //
+std::shared_ptr<MESH::element> MESH::element::get_neighbor(unsigned int faceIdx)
 {
+    assert(faceIdx < _faces.size() && "ERROR: face index to get neighbor element out of bounds");
+    
+    std::vector<std::shared_ptr<face>> faces = get_faces();
+    return faces[faceIdx]->get_other_element(*this);
+}
+
+
+// If this is a element, check all sub-elements
+int MESH::element::operator==(const MESH::face& nface)
+{
+    std::vector<std::shared_ptr<face>> faces = return_shared(&_faces);
+    
     for (int i=0 ; i<this->_faces.size() ; i++) {
-        if (this->_faces[i].get_seed() == element.get_seed()) return i;
+        if (faces[i]->get_seed() == nface.get_seed()) return i;
     }
     return -1;
+}
+
+
+int MESH::element::operator==(const std::shared_ptr<MESH::face>& nface)
+{
+    std::vector<std::shared_ptr<face>> faces = return_shared(&_faces);
+    
+    for (int i=0 ; i<this->_faces.size() ; i++) {
+        if (faces[i]->get_seed() == nface->get_seed()) return i;
+    }
+    return -1;
+}
+
+// Check equality to other element
+bool MESH::element::operator==(const MESH::element& e) const
+{
+    return seed == e.get_seed();
+}
+
+// Check equality to other element
+bool MESH::element::operator==(const std::shared_ptr<MESH::element>& e) const
+{
+    return seed == e->get_seed();
 }
 
 
@@ -431,17 +547,19 @@ MESH::node::node(int id, MATH::Vector coordinates)
 
 
 // * * * * * * * * * * * * * *  Distance Weights * * * * * * * * * * * * * * * //
-void MESH::node::calculateElementDistanceWeights(const std::vector<element>* elements)
+void MESH::node::calculateElementDistanceWeights()
 {
     assert(_elements.size() > 0 && "ERROR: Node has no elements");
     assert(_distanceWeights.size() == 0 && "ERROR: Node already has distance weights");
+
+    std::vector<std::shared_ptr<element>> elements = return_shared(&_elements);
 
     std::vector<double> distances;
     double total = 0.0;
     MATH::Vector dist;
 
     for (int i=0 ; i<_elements.size() ; i++) {
-        dist = (*elements)[i].get_centroid() - _coordinates;
+        dist = (elements)[i]->get_centroid() - _coordinates;
         distances.push_back(dist.getL2Norm());
         total += 1.0/dist.getL2Norm();
     }
@@ -498,35 +616,40 @@ double MESH::node::operator&(const node &obj) const {
 \*------------------------------------------------------------------------*/
 
 // * * * * * * * * * * * * * *  Constructor * * * * * * * * * * * * * * * //
-MESH::Boundary::Boundary(std::string name, std::vector<face> faces, int id)
+MESH::Boundary::Boundary(std::string name, std::vector<std::weak_ptr<face>> faces, int id)
 :
     _name(name),
     _faces(faces),
     _bcID(id)
+{}
+
+// * * * * * * * * * * * * * *  Constructor * * * * * * * * * * * * * * * //
+MESH::Boundary::Boundary(std::string name, std::vector<std::string> faceSeeds, int id)
+:
+    _name(name),
+    _faceSeeds(faceSeeds),
+    _bcID(id)
+{}
+
+// * * * * * * * * * * * * * * Add face to boundary * * * * * * * * * * * * * * * //
+bool MESH::Boundary::add_face(std::weak_ptr<face> face)
 {
-    // Initialize face mapping vectors
-    _local2global.resize(_faces.size());
+    // lambda function for comparing faces
+    auto it = std::find_if(_faces.begin(), _faces.end(), [&face](const std::weak_ptr<MESH::face>& f) {
+        // Compare the shared_ptr held by the weak_ptr
+        return f.lock() == face.lock();
+    });
+
+    if (it == _faces.end()) {
+        _global2local[face.lock()->get_id()] = _faces.size()-1;
+        _faces.push_back(face);
+        return true;
+    }
+    return false;
 }
 
 // * * * * * * * * * * * * * *  Check if global face index is on boundary * * * * * * * * * * * * * * * //
 bool MESH::Boundary::onBoundary(int globalID) const
 {
     return _global2local.find(globalID) != _global2local.end();
-}
-
-// Get global face index of local face index
-int MESH::Boundary::get_globalID(int localID) const
-{ 
-    // Check if localID is in boundary
-    assert(localID >= 0 && localID < _faces.size() && "ERROR: localID is not in boundary");
-    return _local2global[localID]; 
-}
-
-int MESH::Boundary::get_localID(int globalID) const
-{
-    // Check if globalID is in boundary
-    std::ostringstream errorMsg;
-    errorMsg << "ERROR: global face ID " << globalID << " is not in boundary";
-    assert( onBoundary(globalID) && errorMsg.str().c_str() );
-    return _local2global[globalID];
 }

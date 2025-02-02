@@ -97,13 +97,13 @@ TEST_F(solver_test, readNodeCoordinates)
     const auto& mesh = solver->get_mesh();
 
     // Act
-    auto nodes = mesh->get_nodes();
+    std::vector<std::shared_ptr<MESH::node>> nodes = mesh->get_nodes();
     
     // Assert
     ASSERT_EQ(nodes.size(), 12);
     for (int node=0 ; node<nodes.size() ; node++){
-        ASSERT_DOUBLE_EQ(nodes[node].get_coordinates()[0], nodeCoordinates[node][0]);
-        ASSERT_DOUBLE_EQ(nodes[node].get_coordinates()[1], nodeCoordinates[node][1]);
+        ASSERT_DOUBLE_EQ(nodes[node]->get_coordinates()[0], nodeCoordinates[node][0]);
+        ASSERT_DOUBLE_EQ(nodes[node]->get_coordinates()[1], nodeCoordinates[node][1]);
     }
 }
 

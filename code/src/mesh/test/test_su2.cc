@@ -79,8 +79,8 @@ protected:
 
     // Connectivity Test (BC connectivity = -BC idx - 1 )
     std::vector<std::vector<std::vector<int>>> element_connectivity {
-        { {-1,1,-4} , {0,2,4} , {-1,3,1} , {2,-2,6} , {1,5,-4} , {4,6,-3} , {3,7,5} , {6,-2,-3} },
-        { {-1,1,3,-4} , {-1,2,0} , {1,-2,5} , {0,4,-4} , {3,5,-3} , {2,6,4} , {5,-2,-3}}
+        { {-1,1,-4} , {0,2,4} , {1,-1,3} , {2,-2,6} , {1,5,-4} , {4,6,-3} , {3,5,7} , {6,-2,-3} },
+        { {-1,1,3,-4} , {0,-1,2} , {1,-2,5} , {0,4,-4} , {3,5,-3} , {2,4,6} , {5,-2,-3}}
     };
 
     // Element Normal tests
@@ -89,20 +89,20 @@ protected:
         { 
             {{0.0,-1.0} , {s2,s2} , {-1.0,0.0}}, 
             {{-s2,-s2} , {1.0,0.0} , {0.0,1.0}},
-            {{0.0,-1.0} , {s2,s2} , {-1.0,0.0}},
+            {{-1.0,0.0}, {0.0,-1.0} , {s2,s2}},
             {{-s2,-s2} , {1.0,0.0} , {0.0,1.0}},
             {{0.0,-1.0} , {s2,s2} , {-1.0,0.0}},
             {{-s2,-s2} , {1.0,0.0} , {0.0,1.0}}, 
-            {{0.0,-1.0} , {s2,s2} , {-1.0,0.0}},
+            {{0.0,-1.0} , {-1.0,0.0} , {s2,s2}},
             {{-s2,-s2} , {1.0,0.0} , {0.0,1.0}}
         } ,
         {
             {{0.0,-1.0} , {1.0,0.0} , {0.0,1.0}, {-1.0,0.0}},
-            {{0.0,-1.0} , {s2,s2} , {-1.0,0.0}},
+            {{-1.0,0.0} , {0.0,-1.0} , {s2,s2}},
             {{-s2,-s2} , {1.0,0.0} , {0.0,1.0}},
             {{0.0,-1.0} , {s2,s2} , {-1.0,0.0}},
             {{-s2,-s2} , {1.0,0.0} , {0.0,1.0}}, 
-            {{0.0,-1.0} , {s2,s2} , {-1.0,0.0}},
+            {{0.0,-1.0} , {-1.0,0.0} , {s2,s2}},
             {{-s2,-s2} , {1.0,0.0} , {0.0,1.0}}
         }
     };
@@ -110,16 +110,16 @@ protected:
     // Element Distance Weight
     std::vector<std::vector<std::vector<double>>> element_distanceWeight {
         {
-            { {-1,0.5,-1} , {0.5,0.5,0.5} , {-1,0.5,0.5} , {0.5,-1,0.5} , {0.5,0.5,-1} , {0.5,0.5,-1} , {0.5,0.5,0.5} , {0.5,-1,-1} },
-            { {-1,0.42705,0.42705,-1} , {-1,0.5,0.572949} , {0.5,-1,0.5} , {0.572949,0.5,-1} , {0.5,0.5,-1} , {0.5,0.5,0.5} , {0.5,-1,-1} }
+            { {-1,0.5,-1} , {0.5,0.5,0.5} , {0.5,-1,0.5} , {0.5,-1,0.5} , {0.5,0.5,-1} , {0.5,0.5,-1} , {0.5,0.5,0.5} , {0.5,-1,-1} },
+            { {-1,0.42705,0.42705,-1} , {0.572949,-1,0.5} , {0.5,-1,0.5} , {0.572949,0.5,-1} , {0.5,0.5,-1} , {0.5,0.5,0.5} , {0.5,-1,-1} }
         }
     };
 
     // Face test
     std::vector<std::vector<std::vector<int>>> face_connectivity {
-        //cell 0                           cell 1           cell 2           cell 3            cell 4           cell 5           cell 6            cell 7
-        { {0,-1} , {0,1} , {0,-4}        , {1,2}  , {1,4} , {2,-1} , {2,3} , {3,-2} , {3,6}  , {4,5} , {4,-4} , {5,6} , {5,-3} , {6,7} ,           {7,-2} , {7,-3}} , 
-        { {0,-1} , {0,1} , {0,3}, {0,-4} , {1,-1} , {1,2} , {2,-2} , {2,5} , {3,4}  , {3,-4} , {4,5} , {4,-3} , {5,6} ,          {6,-2} , {6,-3}                  }
+        //cell 0                      cell 1          cell 2        cell 3        cell 4        cell 5        cell 6  cell 7
+        { {0} , {0,1} , {0} ,         {1,2} , {1,4} , {2} , {2,3} , {3} , {3,6} , {4,5} , {4} , {5,6} , {5} , {6,7} , {7}, {7} }, 
+        { {0} , {0,1} , {0,3} , {0} , {1} , {1,2} ,   {2} , {2,5} , {3,4} , {3} , {4,5} , {4} , {5,6} , {6} , {6}}
     };
 
     std::vector<std::vector<bool>> face_isBoundary {
@@ -129,8 +129,8 @@ protected:
 
     // Check element faces are assigned
     std::vector<std::vector<std::vector<int>>> element_faceIDs {
-        { {0,1,2} , {1,3,4} , {5,6,3} , {6,7,8} , {4,9,10} , {9,11,12} , {8,13,11} , {13,14,15} },
-        { {0,1,2,3}         , {4,5,1} , {5,6,7} , {2,8,9} , {8,10,11} , {7,12,10} , {12,13,14} }
+        { {0,1,2} , {1,3,4} , {3,5,6} , {6,7,8} , {4,9,10} , {9,11,12} , {8,11,13} , {13,14,15} },
+        { {0,1,2,3}         , {1,4,5} , {5,6,7} , {2,8,9} , {8,10,11} , {7,10,12} , {12,13,14} }
     };
 
     // Check element volumes
@@ -158,8 +158,8 @@ TEST_F(read_su2_mesh_test, readCoordinates)
         // Assert
         ASSERT_EQ(nodes.size(), 9);
         for (int node=0 ; node<nodes.size() ; node++){
-            ASSERT_DOUBLE_EQ(nodes[node].get_coordinates()[0], coordinateX[i][node]);
-            ASSERT_DOUBLE_EQ(nodes[node].get_coordinates()[1], coordinateY[i][node]);
+            ASSERT_DOUBLE_EQ(nodes[node]->get_coordinates()[0], coordinateX[i][node]);
+            ASSERT_DOUBLE_EQ(nodes[node]->get_coordinates()[1], coordinateY[i][node]);
         }
     }
 }
@@ -179,21 +179,20 @@ TEST_F(read_su2_mesh_test, readElements)
 
         // Check element nodes
         for (int element=0 ; element<elements.size() ; element++){
-            for (int vertex=0 ; vertex<elements[element].get_nodes().size() ; vertex++){
-                ASSERT_EQ(elements[element].get_nodes()[vertex].get_id(), element_nodes[i][element][vertex]);
+            for (int vertex=0 ; vertex<elements[element]->get_nodes().size() ; vertex++){
+                ASSERT_EQ(elements[element]->get_nodes()[vertex]->get_id(), element_nodes[i][element][vertex]);
             }
         }
         // Check element face connectivites
         for (int element=0 ; element<elements.size() ; element++){
-            std::cout << "Element: " << element << std::endl;
-            for (int face=0 ; face<elements[element].get_faces().size() ; face++){
+            for (int face=0 ; face<elements[element]->get_faces().size() ; face++){
                 // Check the face has the correct ID
-                ASSERT_EQ(elements[element].get_faces()[face].get_id(), element_faceIDs[i][element][face]);
+                ASSERT_EQ(elements[element]->get_faces()[face]->get_id(), element_faceIDs[i][element][face]);
             }
         }
         // Check element volumes
         for (int element=0 ; element<elements.size() ; element++){
-            ASSERT_DOUBLE_EQ(elements[element].get_volume(), element_volumes[i][element]);
+            ASSERT_DOUBLE_EQ(elements[element]->get_volume(), element_volumes[i][element]);
         }
     }
 }
@@ -210,9 +209,16 @@ TEST_F(read_su2_mesh_test, readConnectivity)
         auto elements = mesh.get_elements();
 
         // Assert
+        int ID;
         for (int element=0 ; element<elements.size() ; element++){
-            for (int face=0 ; face<elements[element].get_faces().size() ; face++){
-                ASSERT_EQ(elements[element].get_faces()[face].get_elements()[0], element_connectivity[i][element][face]);
+            for (int face=0 ; face<elements[element]->get_faces().size() ; face++){
+                if (elements[element]->get_faces()[face]->is_boundaryFace() == false) {
+                    ID = elements[element]->get_neighbor(face)->get_id();
+                }
+                else {
+                    ID = elements[element]->get_faces()[face]->get_boundaryID();
+                }
+                ASSERT_EQ(ID, element_connectivity[i][element][face]);
             }
         }
     }
@@ -232,9 +238,9 @@ TEST_F(read_su2_mesh_test, readNormals)
         // Assert
         // Loop over elements
         for (int element=0 ; element<elements.size() ; element++){
-            std::vector<MATH::Vector> normals = elements[element].get_normals();
+            std::vector<MATH::Vector> normals = elements[element]->get_normals();
             // Loop over subelements
-            for (int face=0 ; face<elements[element].get_faces().size() ; face++){
+            for (int face=0 ; face<elements[element]->get_faces().size() ; face++){                
                 // Loop Over dimensions
                 for (int dim=0 ; dim<normals[face].size() ; dim++){
                     ASSERT_DOUBLE_EQ(element_normals[i][element][face][dim], normals[face][dim]);
@@ -257,9 +263,9 @@ TEST_F(read_su2_mesh_test, distanceWeight)
         // Assert
         // Loop over elements
         for (int element=0 ; element<elements.size() ; element++){
-            std::vector<double> distanceWeight = elements[element].get_distanceWeights();
+            std::vector<double> distanceWeight = elements[element]->get_distanceWeights();
             // Loop over subelements
-            for (int face=0 ; face<elements[element].get_faces().size() ; face++){
+            for (int face=0 ; face<elements[element]->get_faces().size() ; face++){
                 ASSERT_NEAR(element_distanceWeight[i][element][face], distanceWeight[face],1.0e-4);
             }
         }
@@ -280,40 +286,40 @@ TEST_F(read_su2_mesh_test, faceConnectivity)
         // Loop over faces
         for (int face=0 ; face<faces.size() ; face++){
             // Check boundary face
-            ASSERT_EQ(face_isBoundary[i][face], faces[face].is_boundaryFace());
-            std::vector<int> elements = faces[face].get_elements();
+            ASSERT_EQ(face_isBoundary[i][face], faces[face]->is_boundaryFace());
+            std::vector<std::shared_ptr<MESH::element>> elements = faces[face]->get_elements();
             // Loop over elements
             for (int e=0 ; e<elements.size() ; e++){
-                ASSERT_EQ(face_connectivity[i][face][e], elements[e]);
+                ASSERT_EQ(face_connectivity[i][face][e], elements[e]->get_id());
             }
         }
     }
 }
 
 
-/*
-To Lazy to write the data for this test right now, but it works (trust me)
-TEST_F(read_su2_mesh_test, nodeDistanceWeights)
-{
-    for (int i=0 ; i<su2_meshes.size() ; i++)
-    {
-        // Arrange
-        auto& mesh = *su2_meshes[i];
+// /*
+// To Lazy to write the data for this test right now, but it works (trust me)
+// TEST_F(read_su2_mesh_test, nodeDistanceWeights)
+// {
+//     for (int i=0 ; i<su2_meshes.size() ; i++)
+//     {
+//         // Arrange
+//         auto& mesh = *su2_meshes[i];
 
-        // Act
-        auto nodes = mesh.get_nodes();
+//         // Act
+//         auto nodes = mesh.get_nodes();
 
-        // Assert
-        for (int node=0 ; node<nodes.size() ; node++){
-            std::vector<double> distanceWeights = nodes[node].get_distanceWeights();
-            for (int e=0 ; e<distanceWeights.size() ; e++){
-                std::cout << distanceWeights[e] << " ";
-                // ASSERT_DOUBLE_EQ(node_distanceWeights[i][node][e], distanceWeights[e]);
-            }
-            std::cout << "   " << nodes[node].is_boundaryNode();
-            std::cout << std::endl;
-        }
-        std::cout << std::endl;
-    }
-}
-*/
+//         // Assert
+//         for (int node=0 ; node<nodes.size() ; node++){
+//             std::vector<double> distanceWeights = nodes[node].get_distanceWeights();
+//             for (int e=0 ; e<distanceWeights.size() ; e++){
+//                 std::cout << distanceWeights[e] << " ";
+//                 // ASSERT_DOUBLE_EQ(node_distanceWeights[i][node][e], distanceWeights[e]);
+//             }
+//             std::cout << "   " << nodes[node].is_boundaryNode();
+//             std::cout << std::endl;
+//         }
+//         std::cout << std::endl;
+//     }
+// }
+// */

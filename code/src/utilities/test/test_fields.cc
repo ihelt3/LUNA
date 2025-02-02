@@ -85,13 +85,13 @@ TEST_F(test_fields, test_mesh_read)
     // Assert
     ASSERT_EQ(nodes.size(), 6);
     for (int node=0 ; node<nodes.size() ; node++){
-        ASSERT_DOUBLE_EQ(nodes[node].get_coordinates()[0], coordinates[node][0]);
-        ASSERT_DOUBLE_EQ(nodes[node].get_coordinates()[1], coordinates[node][1]);
+        ASSERT_DOUBLE_EQ(nodes[node]->get_coordinates()[0], coordinates[node][0]);
+        ASSERT_DOUBLE_EQ(nodes[node]->get_coordinates()[1], coordinates[node][1]);
     }
     ASSERT_EQ(elements.size(), 3);
     for (int element=0 ; element<elements.size() ; element++){
-        for (int node=0 ; node<elements[element].get_nodes().size() ; node++){
-            ASSERT_EQ(elements[element].get_nodes()[node].get_id(), element_nodes[element][node]);
+        for (int node=0 ; node<elements[element]->get_nodes().size() ; node++){
+            ASSERT_EQ(elements[element]->get_nodes()[node]->get_id(), element_nodes[element][node]);
         }
     }
     std::cout << "test_mesh_read passed" << std::endl;

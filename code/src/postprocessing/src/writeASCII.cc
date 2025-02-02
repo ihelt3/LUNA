@@ -81,9 +81,9 @@ void POSTPROCESSING::writeASCII::write(std::vector<std::string> components, std:
                 // Loop through variables
                 for (const auto& v : variables)
                 {
-                    if      (v == "x")      { outfile << _mesh->get_elements()[c].get_centroid()[0]; }
-                    else if (v == "y")      { outfile << _mesh->get_elements()[c].get_centroid()[1]; }
-                    else if (v == "z")      { outfile << _mesh->get_elements()[c].get_centroid()[2]; }
+                    if      (v == "x")      { outfile << _mesh->get_elements()[c]->get_centroid()[0]; }
+                    else if (v == "y")      { outfile << _mesh->get_elements()[c]->get_centroid()[1]; }
+                    else if (v == "z")      { outfile << _mesh->get_elements()[c]->get_centroid()[2]; }
                     else if (v == "u")      { outfile << _solver->get_cellVelocityField().get_internal()[c][0]; }
                     else if (v == "v")      { outfile << _solver->get_cellVelocityField().get_internal()[c][1]; }
                     else if (v == "w")      { outfile << _solver->get_cellVelocityField().get_internal()[c][2]; }
@@ -104,21 +104,19 @@ void POSTPROCESSING::writeASCII::write(std::vector<std::string> components, std:
             std::shared_ptr<BOUNDARIES::BoundaryCondition> bc =  _solver->get_boundaryCondition(id);
             
             // Loop over faces
-            for (const auto& f : _mesh->get_boundaries()[idx].get_faces() )
+            for (const std::shared_ptr<MESH::face>& f : _mesh->get_boundaries()[idx]->get_faces() )
             {
                 outfile << "\n";
-                // Get global face index
-                int globalID = _mesh->get_boundaries()[idx].get_globalID(f.get_id());
                 // Loop over variables
                 for (const auto& v : variables) 
                 {
-                    if      (v == "x") { outfile << f.get_centroid()[0]; }
-                    else if (v == "y") { outfile << f.get_centroid()[1]; }
-                    else if (v == "z") { outfile << f.get_centroid()[2]; }
-                    else if (v == "u") { outfile << bc->get_velocity(globalID)[0]; }
-                    else if (v == "v") { outfile << bc->get_velocity(globalID)[1]; }
-                    else if (v == "w") { outfile << bc->get_velocity(globalID)[2]; }
-                    else if (v == "p") { outfile << bc->get_pressure(globalID); }
+                    if      (v == "x") { outfile << f->get_centroid()[0]; }
+                    else if (v == "y") { outfile << f->get_centroid()[1]; }
+                    else if (v == "z") { outfile << f->get_centroid()[2]; }
+                    else if (v == "u") { outfile << bc->get_velocity(f->get_id())[0]; }
+                    else if (v == "v") { outfile << bc->get_velocity(f->get_id())[1]; }
+                    else if (v == "w") { outfile << bc->get_velocity(f->get_id())[2]; }
+                    else if (v == "p") { outfile << bc->get_pressure(f->get_id()); }
 
                     outfile << ", ";
                 }
@@ -181,9 +179,9 @@ void POSTPROCESSING::writeASCII::write_faces(std::vector<std::string> components
                 // Loop through variables
                 for (const auto& v : variables)
                 {
-                    if      (v == "x")      { outfile << _mesh->get_faces()[f].get_centroid()[0]; }
-                    else if (v == "y")      { outfile << _mesh->get_faces()[f].get_centroid()[1]; }
-                    else if (v == "z")      { outfile << _mesh->get_faces()[f].get_centroid()[2]; }
+                    if      (v == "x")      { outfile << _mesh->get_faces()[f]->get_centroid()[0]; }
+                    else if (v == "y")      { outfile << _mesh->get_faces()[f]->get_centroid()[1]; }
+                    else if (v == "z")      { outfile << _mesh->get_faces()[f]->get_centroid()[2]; }
                     else if (v == "u")      { outfile << _solver->get_faceVelocityField().get_internal()[f][0]; }
                     else if (v == "v")      { outfile << _solver->get_faceVelocityField().get_internal()[f][1]; }
                     else if (v == "w")      { outfile << _solver->get_faceVelocityField().get_internal()[f][2]; }
@@ -208,22 +206,20 @@ void POSTPROCESSING::writeASCII::write_faces(std::vector<std::string> components
             std::shared_ptr<BOUNDARIES::BoundaryCondition> bc =  _solver->get_boundaryCondition(id);
             
             // Loop over faces
-            for (const auto& f : _mesh->get_boundaries()[idx].get_faces() )
+            for (const std::shared_ptr<MESH::face>& f : _mesh->get_boundaries()[idx]->get_faces() )
             {
                 outfile << "\n";
-                // Get global face index
-                int globalID = _mesh->get_boundaries()[idx].get_globalID(f.get_id());
                 // Loop over variables
                 for (const auto& v : variables) 
                 {
-                    if      (v == "x")      { outfile << f.get_centroid()[0]; }
-                    else if (v == "y")      { outfile << f.get_centroid()[1]; }
-                    else if (v == "z")      { outfile << f.get_centroid()[2]; }
-                    else if (v == "u")      { outfile << bc->get_velocity(globalID)[0]; }
-                    else if (v == "v")      { outfile << bc->get_velocity(globalID)[1]; }
-                    else if (v == "w")      { outfile << bc->get_velocity(globalID)[2]; }
-                    else if (v == "p")      { outfile << bc->get_pressure(globalID); }
-                    else if (v == "mdotf")  { outfile << bc->get_massFlux(globalID); }
+                    if      (v == "x")      { outfile << f->get_centroid()[0]; }
+                    else if (v == "y")      { outfile << f->get_centroid()[1]; }
+                    else if (v == "z")      { outfile << f->get_centroid()[2]; }
+                    else if (v == "u")      { outfile << bc->get_velocity(f->get_id())[0]; }
+                    else if (v == "v")      { outfile << bc->get_velocity(f->get_id())[1]; }
+                    else if (v == "w")      { outfile << bc->get_velocity(f->get_id())[2]; }
+                    else if (v == "p")      { outfile << bc->get_pressure(f->get_id()); }
+                    else if (v == "mdotf")  { outfile << bc->get_massFlux(f->get_id()); }
 
                     outfile << ", ";
                 }

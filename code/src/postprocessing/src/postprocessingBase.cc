@@ -35,8 +35,8 @@ POSTPROCESSING::postprocessingBase::postprocessingBase(std::shared_ptr<SOLVER::S
 
     // Get all components from mesh (domain + all boundaries)
     _all_components = {"domain"};
-    for (const auto& boundary : _solver->get_mesh()->get_boundaries()) {
-        _all_components.push_back(boundary.get_name());
+    for (const std::shared_ptr<MESH::Boundary>& boundary : _solver->get_mesh()->get_boundaries()) {
+        _all_components.push_back(boundary->get_name());
     }
 
 };
