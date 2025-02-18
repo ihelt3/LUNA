@@ -26,25 +26,23 @@
 
 // Construct from node IDs
 //    NOTE: This constructor requires the initialize method to be used after instantiation and node vector is added
-MESH::mesh_entity::mesh_entity(int id,elementTypeEnum elementType, std::vector<int> nodeIDs, bool subElement)
+MESH::mesh_entity::mesh_entity(int id,elementTypeEnum elementType, std::vector<int> nodeIDs)
 :
     _id(id),
     _elementType(elementType),
     _nodeIDs(nodeIDs),
     _nodes({}),
-    _subElement(subElement),
     _centroid({})
 {
 
 }
 
 // Construct from node vector
-MESH::mesh_entity::mesh_entity(int id, elementTypeEnum elementType, std::vector<std::weak_ptr<node>> nodes, bool subElement)
+MESH::mesh_entity::mesh_entity(int id, elementTypeEnum elementType, std::vector<std::weak_ptr<node>> nodes)
 :
     _id(id),
     _elementType(elementType),
     _nodes(nodes),
-    _subElement(subElement),
     _centroid({})
 {
     std::vector<std::shared_ptr<node>> shared_nodes = return_shared(&_nodes);
@@ -59,11 +57,10 @@ MESH::mesh_entity::mesh_entity(int id, elementTypeEnum elementType, std::vector<
 }
 
 // construct from face vector
-MESH::mesh_entity::mesh_entity(int id, elementTypeEnum elementType, std::vector<std::weak_ptr<face>> faces, bool subElement)
+MESH::mesh_entity::mesh_entity(int id, elementTypeEnum elementType, std::vector<std::weak_ptr<face>> faces)
 :
     _id(id),
     _elementType(elementType),
-    _subElement(subElement),
     _centroid({})
 {
     std::vector<std::shared_ptr<face>> shared_faces = return_shared(&faces);
@@ -225,18 +222,18 @@ MESH::face::face(mesh_entity e, bool boundaryFace)
 
 }
 
-MESH::face::face(int id, elementTypeEnum elementType, std::vector<std::weak_ptr<node>> nodes, bool subElement, bool boundaryFace)
+MESH::face::face(int id, elementTypeEnum elementType, std::vector<std::weak_ptr<node>> nodes, bool boundaryFace)
 :
-    mesh_entity(id, elementType, nodes, subElement),
+    mesh_entity(id, elementType, nodes),
     _boundaryFace(boundaryFace)
 {
     initialize();
 }
 
 // ONLY NODE IDs ARE PROVIDED, NEEDS TO BE INITILIAZED LATER
-MESH::face::face(int id, elementTypeEnum elementType, std::vector<int> nodeIDs, bool subElement, bool boundaryFace)
+MESH::face::face(int id, elementTypeEnum elementType, std::vector<int> nodeIDs, bool boundaryFace)
 :
-    mesh_entity(id, elementType, nodeIDs, subElement),
+    mesh_entity(id, elementType, nodeIDs),
     _boundaryFace(boundaryFace)
 {
 
@@ -260,7 +257,7 @@ void MESH::face::initialize() {
 std::shared_ptr<MESH::element> MESH::face::get_other_element(MESH::element e)
 {
     assert( !_boundaryFace && "ERROR: Face is on the boundary, no neighbor element");
-    std::vector<std::shared_ptr<element>> elements = get_elements();
+    std::vector<std::shared_ptr<element>> elements = { get_owner(), get_neighbor() };
 
     if ( e == *elements[0]) {
         return elements[1];
@@ -270,30 +267,78 @@ std::shared_ptr<MESH::element> MESH::face::get_other_element(MESH::element e)
     }
 }
 
+// * * * * * * * * * * * * * Set owner of face * * * * * * * * * * * * * * //
+void MESH::face::set_owner(std::weak_ptr<element> owner) 
+{ 
+    // Make sure face exists in element
+    std::shared_ptr<element> e = owner.lock();
+    assert( *e == *this && "ERROR: Face does not exist in element");
+    _owner = owner; 
+
+    // Calculate normal
+    calculateNormal();
+}
+
+// * * * * * * * * * * * * * Set neighbor of face * * * * * * * * * * * * * * //
+void MESH::face::set_neighbor(std::weak_ptr<element> neighbor) 
+{ 
+    // Make sure face exists in element
+    std::shared_ptr<element> e = neighbor.lock();
+    assert( *e == *this && "ERROR: Face does not exist in element");
+    _neighbor = neighbor; 
+}
+
+// * * * * * * * * * * * * * *  get elements * * * * * * * * * * * * * * * //
+std::vector<std::shared_ptr<MESH::element>> MESH::face::get_elements()
+{
+    std::vector<std::weak_ptr<element>> elements({_owner, _neighbor});
+    return return_shared(&elements);
+}
+
+
+// * * * * * * * * * * * * * * Calculate face normal * * * * * * * * * * * * * * * //
+void MESH::face::calculateNormal()
+{
+    // Get face nodes
+    std::vector<std::shared_ptr<node>> nodes = return_shared(&_nodes);
+
+    // Calculate unit normal
+    double nx = nodes[1]->get_coordinates()[1] - nodes[0]->get_coordinates()[1];
+    double ny = nodes[1]->get_coordinates()[0] - nodes[0]->get_coordinates()[0];
+    double mag = std::sqrt(nx*nx + ny*ny);
+    _normal = std::vector<double>{-nx/mag,ny/mag};
+
+    // Ensure normal is pointing outward by taking dot product with owner element
+    node centroid_diff = node(-1,get_owner()->get_centroid() - _centroid );
+    if ( (centroid_diff & node(-1,_normal)) > 0.0) {
+        _normal = std::vector<double>{-_normal[0],-_normal[1]};
+    }
+}
+
 
 /*------------------------------------------------------------------------*\
 **  Class element Implementation
 \*------------------------------------------------------------------------*/
 
 // * * * * * * * * * * * * * *  Constructors * * * * * * * * * * * * * * * //
-MESH::element::element(int id,elementTypeEnum elementType, std::vector<int> nodeIDs, bool subElement)
+MESH::element::element(int id,elementTypeEnum elementType, std::vector<int> nodeIDs)
 :
-    mesh_entity(id,elementType,nodeIDs,subElement)
+    mesh_entity(id,elementType,nodeIDs)
 {
 
 }
 
-MESH::element::element(int id, elementTypeEnum elementType, std::vector<std::weak_ptr<node>> nodes, bool subElement)
+MESH::element::element(int id, elementTypeEnum elementType, std::vector<std::weak_ptr<node>> nodes)
 :
-    mesh_entity(id,elementType,nodes,subElement)
+    mesh_entity(id,elementType,nodes)
 {
     // Run initialize method
     initializeInterior();
 }
 
-MESH::element::element(int id, elementTypeEnum elementType, std::vector<std::weak_ptr<face>> faces, bool subElement)
+MESH::element::element(int id, elementTypeEnum elementType, std::vector<std::weak_ptr<face>> faces)
 :
-    mesh_entity(id,elementType,faces,subElement)
+    mesh_entity(id,elementType,faces)
 {
     // Assign faces to element
     _faces = faces;
@@ -325,6 +370,7 @@ void MESH::element::initializeInterior() {
     // Hashing for element comparison
     hash();
 }
+
 
 void MESH::element::initializeExterior() 
 {
@@ -359,6 +405,17 @@ std::vector<MESH::face> MESH::element::determineSubElements()
     std::vector<MESH::face> faces;
     std::vector<std::shared_ptr<node>> nodes = return_shared(&_nodes);
 
+    // Smart pointer to this enabled by std::make_shared_from_this
+    std::shared_ptr<element> selfPtr;
+    // Make sure we are calling determineSubElements from a smart pointer to an element
+    try {
+        selfPtr = shared_from_this();
+    } catch (const std::bad_weak_ptr&) 
+    {
+        std::cerr << "ERROR: determineSubElements() called on object not managed by a shared pointer" << std::endl;
+        return faces;
+    }
+
     // 1D ELEMENT IMPLEMENTATION
     if ( type2dimension[_elementType] == 1 ) faces = {};
 
@@ -376,8 +433,14 @@ std::vector<MESH::face> MESH::element::determineSubElements()
         for (int e=0; e<_nodes.size() ; e++) {
             // get list of nodes that make up element
             std::vector<std::weak_ptr<node>> nodes{ _nodes[order[e]] , _nodes[order[(e+1) % _nodes.size()]]}; 
+
             // Create sub element
             face subElement(-1, elementTypeEnum::LINE, nodes);
+
+            // Set owner of sub element, and calculate normal
+            subElement.set_owner(selfPtr);
+
+            // Add sub element
             faces.push_back(subElement);
         }
     }
@@ -396,12 +459,11 @@ std::vector<MESH::face> MESH::element::determineSubElements()
     return faces;
 }
 
-
-
 // * * * * * * * * * * * * * * Calculate Cell Normals * * * * * * * * * * * * * * * //
 void MESH::element::calculateOutwardNormals()
 {
     // Note: we need to use faces and not just nodes so indexes remain consistent
+    assert(_faces.size() != 0 && "ERROR: faces not initialized! Faces must be set before normal calculation!");
 
     std::vector<std::shared_ptr<face>> faces = return_shared(&_faces);
 
@@ -436,6 +498,7 @@ void MESH::element::calculateOutwardNormals()
 // * * * * * * * * * * * * * * Face Distance Weight * * * * * * * * * * * * * * * //
 void MESH::element::calculateFaceDistanceWeights()
 {
+
     assert( _faces.size() != 0 && "ERROR: faces not initialized! Faces must be set before distance weight calculation!");
     std::vector<std::shared_ptr<face>> faces = get_faces();
 
@@ -451,6 +514,7 @@ void MESH::element::calculateFaceDistanceWeights()
         else
         {
             std::shared_ptr<element> nb = get_neighbor(i);
+
             MATH::Vector v1 = MATH::Vector(_centroid - faces[i]->get_centroid());
             MATH::Vector v2 = MATH::Vector(nb->get_centroid() - faces[i]->get_centroid());
             double d1 = v1.getL2Norm();
@@ -459,23 +523,6 @@ void MESH::element::calculateFaceDistanceWeights()
             // Get weighted distance between elements and face
             _distanceWeights[i] = (1.0/d1) / ((1.0/d1) + (1.0/d2)) ;
         }
-        
-        // // First check which sub-element (if any) elements share
-        // for (std::shared_ptr<face> subelement : neighborElement.get_faces()) {
-        //     int idx = *this == *subelement;
-        //     if (idx != -1) {
-        //         // Get distance between this element and face
-        //         MATH::Vector v1 = MATH::Vector(_centroid - subelement->get_centroid());
-        //         MATH::Vector v2 = MATH::Vector(neighborElement._centroid - subelement->get_centroid());
-        //         double d1 = v1.getL2Norm();
-        //         double d2 = v2.getL2Norm();
-                
-        //         // Get weighted distance between elements and face
-        //         _distanceWeights[idx] = (1.0/d1) / ((1.0/d1) + (1.0/d2));
-        //         neighborElement._distanceWeights[neighborElement == *subelement] = (1.0/d2) / ((1.0/d1) + (1.0/d2));
-        //         return;
-        //     }
-        // }
     }
    
 }
@@ -490,10 +537,20 @@ std::shared_ptr<MESH::element> MESH::element::get_neighbor(unsigned int faceIdx)
 }
 
 
-// If this is a element, check all sub-elements
+// * * * * * * * * * * * * * * Check face exists in element * * * * * * * * * * * * * * * //
 int MESH::element::operator==(const MESH::face& nface)
 {
-    std::vector<std::shared_ptr<face>> faces = return_shared(&_faces);
+    std::vector<std::shared_ptr<face>> faces;
+    // Ensure faces vector isn't empty
+    if (_faces.size() == 0)
+    {
+        std::vector<face> temp = determineSubElements();
+        faces = return_shared(&temp);
+    }
+    else
+    {
+        faces = return_shared(&_faces);
+    }
     
     for (int i=0 ; i<this->_faces.size() ; i++) {
         if (faces[i]->get_seed() == nface.get_seed()) return i;
@@ -502,9 +559,20 @@ int MESH::element::operator==(const MESH::face& nface)
 }
 
 
+// * * * * * * * * * * * * * * Check face exists in element * * * * * * * * * * * * * * * //
 int MESH::element::operator==(const std::shared_ptr<MESH::face>& nface)
 {
-    std::vector<std::shared_ptr<face>> faces = return_shared(&_faces);
+    std::vector<std::shared_ptr<face>> faces;
+    // Ensure faces vector isn't empty
+    if (_faces.size() == 0)
+    {
+        std::vector<face> temp = determineSubElements();
+        faces = return_shared(&temp);
+    }
+    else
+    {
+        faces = return_shared(&_faces);
+    }
     
     for (int i=0 ; i<this->_faces.size() ; i++) {
         if (faces[i]->get_seed() == nface->get_seed()) return i;
@@ -512,13 +580,14 @@ int MESH::element::operator==(const std::shared_ptr<MESH::face>& nface)
     return -1;
 }
 
-// Check equality to other element
+
+// * * * * * * * * * * * Check equality to other element * * * * * * * * * * //
 bool MESH::element::operator==(const MESH::element& e) const
 {
     return seed == e.get_seed();
 }
 
-// Check equality to other element
+// * * * * * * * * * * * Check equality to other element * * * * * * * * * * //
 bool MESH::element::operator==(const std::shared_ptr<MESH::element>& e) const
 {
     return seed == e->get_seed();

@@ -98,6 +98,27 @@ std::vector<std::shared_ptr<T>> return_shared(std::vector<std::weak_ptr<T>>* wea
     return sharedPtrs;
 }
 
+template<typename T>
+std::shared_ptr<T> return_shared(std::weak_ptr<T>* weakPtr)
+{
+    if (!weakPtr) return nullptr; // Handle nullptr input safely
+
+    if (auto sharedPtr = weakPtr->lock()) {
+        return sharedPtr;
+    }
+    return nullptr;
+}
+
+template<typename T>
+std::vector<std::shared_ptr<T>> return_shared(std::vector<T>* nonPtr)
+{
+    std::vector<std::shared_ptr<T>> sharedPtrs;
+    for (auto& ptr : *nonPtr) {
+        sharedPtrs.push_back(std::make_shared<T>(ptr));
+    }
+    return sharedPtrs;
+}
+
 /*------------------------------------------------------------------------*\
 **  Class node Declaration
 \*------------------------------------------------------------------------*/
@@ -173,11 +194,11 @@ public:
         // Default constructor
         mesh_entity() : _id(-1), _elementType(elementTypeEnum::INVALID), _nodes({}), _centroid({}) {};
         // instantiate from vector of node IDs
-        mesh_entity(int, elementTypeEnum, std::vector<int>, bool subElement=false);
+        mesh_entity(int, elementTypeEnum, std::vector<int>);
         // instantiate from vector of nodes
-        mesh_entity(int, elementTypeEnum, std::vector<std::weak_ptr<node>>, bool subElement=false);
+        mesh_entity(int, elementTypeEnum, std::vector<std::weak_ptr<node>>);
         // instantiate from vector of faces
-        mesh_entity(int, elementTypeEnum, std::vector<std::weak_ptr<face>>, bool subElement=false);
+        mesh_entity(int, elementTypeEnum, std::vector<std::weak_ptr<face>>);
     
     // Member Functions
         // initialize mesh entity
@@ -220,8 +241,6 @@ protected:
         std::vector<std::weak_ptr<node>> _nodes;
         // cell centroid
         MATH::Vector _centroid;
-        // true/false sub-element
-        bool _subElement;
         // vector of node-ids
         std::vector<int> _nodeIDs;
         // Cell "volume"
@@ -249,29 +268,45 @@ public:
         // Copy from element class
         explicit face(mesh_entity, bool boundaryFace=false);
         // instantiate from vector of node IDs
-        face(int, elementTypeEnum, std::vector<int>, bool subElement=true, bool boundaryFace=false);
+        face(int, elementTypeEnum, std::vector<int>, bool boundaryFace=false);
         // instantiate from vector of nodes
-        face(int, elementTypeEnum, std::vector<std::weak_ptr<node>>, bool subElement=true, bool boundaryFace=false);
+        face(int, elementTypeEnum, std::vector<std::weak_ptr<node>>, bool boundaryFace=false);
 
     // Member Functions
         // Initialize element
         void initialize() override; 
+        // Calculate face normal
+        void calculateNormal();
 
     // Set methods
-        void set_elements(std::vector<std::weak_ptr<element>> elements) { _elements = elements; };
-        void add_element(std::weak_ptr<element> element) { _elements.push_back(element); };
+        void set_owner(std::weak_ptr<element> owner);
+        void set_neighbor(std::weak_ptr<element> neighbor);
         void set_boundary(int boundaryID) { _boundaryID = boundaryID; _boundaryFace = true; };
 
     // Get methods
-        const std::vector<std::shared_ptr<element>> get_elements() { return return_shared(&_elements); };
+        // Get owner element
+        const std::shared_ptr<element> get_owner() { return return_shared(&_owner); };
+        // Get neighbor element
+        const std::shared_ptr<element> get_neighbor() { return return_shared(&_neighbor); };
+        // Get face normal
+        const MATH::Vector& get_normal() const { return _normal; };
+        // Get both elements
+        std::vector<std::shared_ptr<element>> get_elements();
+        // Get element that is not the given element
         std::shared_ptr<element> get_other_element(element);
+        // Check if this is boundary face
         const bool& is_boundaryFace() const { return _boundaryFace; };
+        // Get boundary ID
         const int& get_boundaryID() const { return _boundaryID; };
 
 private:
     // Private member data
-        // Elements attached to this faces
-        std::vector<std::weak_ptr<element>> _elements {};
+        // Owner element
+        std::weak_ptr<element> _owner;
+        // Neighbor element
+        std::weak_ptr<element> _neighbor;
+        // Face normal (outward pointwing w.r.t owner)
+        MATH::Vector _normal;
         // If face is a boundary face (default to no boundary)
         bool _boundaryFace = false;
         int _boundaryID;
@@ -285,18 +320,19 @@ private:
 // generic element which is either made up of nodes (line) [1D], lines (tri,quad) [2D], or combinations of tris and quads [3D]
 class element
 :
-    public mesh_entity
+    public mesh_entity,
+    public std::enable_shared_from_this<element>
 {
 public:
     // Constructor
         // Default constructor: invalid element
         element() : mesh_entity() {};
         // instantiate from vector of node IDs
-        element(int, elementTypeEnum, std::vector<int>, bool subElement=false);
+        element(int, elementTypeEnum, std::vector<int>);
         // instantiate from vector of nodes
-        element(int, elementTypeEnum, std::vector<std::weak_ptr<node>>, bool subElement=false);
+        element(int, elementTypeEnum, std::vector<std::weak_ptr<node>>);
         // instantiate from vector of faces
-        element(int, elementTypeEnum, std::vector<std::weak_ptr<face>>, bool subElement=false);
+        element(int, elementTypeEnum, std::vector<std::weak_ptr<face>>);
 
     // Member Functions
         // initialize element
@@ -318,8 +354,6 @@ public:
         std::shared_ptr<element> get_neighbor(unsigned int faceIdx);
 
     // set methods
-        void set_subElement(bool subElement) { _subElement = subElement; };
-        // void set_face_connection(int faceIdx, int neighborID) { _faces[faceIdx]->set_elements({neighborID}); };
 
     // get methods ( [const type& get() const {}] returns a const reference, i.e. reference to data to avoid copying data)
         const std::vector<std::shared_ptr<face>> get_faces() { return return_shared(&_faces); };
@@ -330,6 +364,7 @@ public:
         // Override == operator from base class to check for subelements
         int operator==(const face&);
         int operator==(const std::shared_ptr<face>& nface);
+        // Check if two elements are the same
         bool operator==(const element&) const;
         bool operator==(const std::shared_ptr<element>&) const;
 

@@ -74,3 +74,38 @@ std::ostream& MESH::operator<<(std::ostream& os, const MESH::mesh& mesh) {
     os << "Boundaries: " << mesh.get_boundaries().size() << std::endl;
     return os;
 }
+
+
+// * * * * * * * * * * * * * *  Calculate face normal deltas * * * * * * * * * * * * * * * //
+// Calculates distances between nodes normal to face
+// For boundary nodes, this is just the distance to the neighbor cell center
+// * * * * * * * * * * * * * Calculate Face Normal Deltas * * * * * * * * * * * * * * //
+void MESH::mesh::calculateFaceNormalDeltas() {
+    // Initialize face normal deltas vector
+    _faceNormalDeltas.clear();
+
+    // Initialize some variables
+    MATH::Vector delta(_dimension);
+    std::shared_ptr<element> elem;
+    std::shared_ptr<element> elem2;
+
+    // Loop through faces
+    for (const std::shared_ptr<face>& f : _faces ) {
+        
+        // Get first element
+        elem = f->get_elements()[0];
+        
+        // For a boundary face, the delta is just the distance to the face
+        if (f->is_boundaryFace()) {
+            delta = elem->get_centroid() - f->get_centroid();
+        }
+        // For interior faces, the delta is the distance between the two elements (normal to the face)
+        else {
+            elem2 = f->get_elements()[1];
+            auto faceNormal = elem2->get_centroid() - elem->get_centroid();
+            delta = elem2->get_centroid() - elem->get_centroid();
+        }
+        // = | vector between elements  dot  face unit normal |
+        _faceNormalDeltas.push_back( abs(delta * elem->get_normals()[*elem==*f]) );
+    }
+}

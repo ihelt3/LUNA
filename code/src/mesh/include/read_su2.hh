@@ -29,7 +29,7 @@ class read_su2
 {
 public:
     // Constructor 
-    read_su2(std::filesystem::path file);
+    read_su2(std::filesystem::path file, bool verbose=true );
 
 protected:
     // Protected Data
@@ -40,7 +40,7 @@ protected:
     void parseElements();
     void parseNodes();
     void parseBCs();
-    element elementFromLine(std::string, bool, int);
+    element elementFromLine(std::string, int);
     
 
 private:

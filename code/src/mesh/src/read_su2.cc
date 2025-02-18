@@ -16,8 +16,11 @@
 \*------------------------------------------------------------------------*/
 
 // * * * * * * * * * * * * * *  Constructor * * * * * * * * * * * * * * * //
-MESH::read_su2::read_su2(std::filesystem::path su2FilePath) : read_base(su2FilePath) {
-    std::cout << "Reading su2 mesh..." << std::endl;
+MESH::read_su2::read_su2(std::filesystem::path su2FilePath , bool verbose) 
+: 
+    read_base(su2FilePath, verbose)
+{
+    if (_verbose) std::cout << "Reading su2 mesh..." << std::endl;
     auto start = std::chrono::steady_clock::now();
 
     std::string line;
@@ -32,49 +35,53 @@ MESH::read_su2::read_su2(std::filesystem::path su2FilePath) : read_base(su2FileP
 
         // Check for NDIME
         if (line.find("NDIME") != std::string::npos) {
-            std::cout << "  Getting dimensional information..." << std::endl;
+            if (_verbose) std::cout << "  Getting dimensional information..." << std::endl;
             line = line.erase(0,line.find(_delimiter)+1);
             Mesh._dimension = std::stoi(line.c_str());
         }
         // Check for NELEM
         else if (line.find("NELEM") != std::string::npos) {
-            std::cout << "  Reading element data..." << std::endl;
+            if (_verbose) std::cout << "  Reading element data..." << std::endl;
             line = line.erase(0,line.find(_delimiter)+1);
             _nElements = std::stoi(line.c_str());
             parseElements();
         }
         else if (line.find("NPOIN") != std::string::npos) {
-            std::cout << "  Reading nodal data..." << std::endl;
+            if (_verbose) std::cout << "  Reading nodal data..." << std::endl;
             line = line.erase(0,line.find(_delimiter)+1);
             _nNodes = std::stoi(line.c_str());
             parseNodes();
         }
         else if (line.find("NMARK") != std::string::npos) {
-            std::cout << "  Reading boundary conditions..." << std::endl;
+            if (_verbose) std::cout << "  Reading boundary conditions..." << std::endl;
             line = line.erase(0,line.find(_delimiter)+1);
             _nBCs = std::stoi(line.c_str());
             parseBCs();
         }
     }
 
-    std::cout << "  instantiating elements from node list..." << std::endl;
+    if (_verbose) std::cout << "  instantiating elements from node list..." << std::endl;
     instantiateElements();
-    std::cout << "  Updating Nodes..." << std::endl;
+    if (_verbose) std::cout << "  Updating Nodes..." << std::endl;
     updateNodes();
+
+    // Calculate face normal deltas
+    if (_verbose) std::cout << "  Calculating face normal deltas..." << std::endl;
+    Mesh.calculateFaceNormalDeltas();
 
     // Time mesh reading
     auto end = std::chrono::steady_clock::now();
     auto diff = end-start;
-    std::cout << "Mesh read in " << std::chrono::duration<double, std::milli>(diff).count() << " ms" << std::endl;
+    if (_verbose) std::cout << "Mesh read in " << std::chrono::duration<double, std::milli>(diff).count() << " ms" << std::endl;
 
     // done!
-    std::cout << "su2 mesh read!" << std::endl;
+    if (_verbose) std::cout << "su2 mesh read!" << std::endl;
 }
 
 
 // * * * * * * * * * * * * * *  elementFromLine * * * * * * * * * * * * * * * //
 // NOTE: This initializes only the node ID vector, element still needs to be initialized
-MESH::element MESH::read_su2::elementFromLine(std::string line, bool subElement, int id)
+MESH::element MESH::read_su2::elementFromLine(std::string line, int id)
 {
     int nodei;
     int elementType;
@@ -99,7 +106,7 @@ MESH::element MESH::read_su2::elementFromLine(std::string line, bool subElement,
         nodeID_vec.push_back(nodei);
     }
     
-    element elementOut(id,elementTypei,nodeID_vec,subElement);
+    element elementOut(id,elementTypei,nodeID_vec);
     elementOut.hash();
 
     return elementOut;
@@ -128,7 +135,7 @@ void MESH::read_su2::parseElements() {
         
         // get element from line in file
         getline(_file,line);
-        element elementi = elementFromLine(line,false,id);
+        element elementi = elementFromLine(line,id);
 
         // Add element to elements vector
         Mesh._elements.push_back(std::make_shared<element>(elementi));
@@ -189,7 +196,7 @@ void MESH::read_su2::parseBCs() {
             getline(_file,line);
 
             // BC elements should be set as sub-elements
-            element thisElement = elementFromLine(line,true,facei);
+            element thisElement = elementFromLine(line,facei);
             // Instantiate face as boundary face (true)
             face thisFace(thisElement,true);
             

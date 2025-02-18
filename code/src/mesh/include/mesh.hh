@@ -37,6 +37,8 @@ public:
         int get_boundaryIdx(std::string) const;
         // Get Boundary index from ID
         int get_boundaryIdx(int) const;
+        // calculate face normal deltas
+        void calculateFaceNormalDeltas();
 
     // get methods
         const int& get_dimension() const { return _dimension; };
@@ -48,6 +50,8 @@ public:
         const std::vector<std::shared_ptr<Boundary>>& get_boundaries() const { return _boundaries; };
         // return faces vector
         const std::vector<std::shared_ptr<face>>& get_faces() const { return _faces; };
+        // return face normal deltas vector
+        const std::vector<double>& get_faceNormalDeltas() const { return _faceNormalDeltas; };
 
     // Operator Overloading
         // Overloaded << operator
@@ -74,7 +78,9 @@ protected:
         // Nodes Vector
         std::vector<std::shared_ptr<node>> _nodes;
         // Boundaries Vector
-        std::vector<std::shared_ptr<Boundary>> _boundaries;  
+        std::vector<std::shared_ptr<Boundary>> _boundaries; 
+        // Face normal distance between neighboring elements
+        std::vector<double> _faceNormalDeltas; 
 
 
 };

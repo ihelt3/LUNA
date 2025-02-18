@@ -23,9 +23,12 @@
 \*------------------------------------------------------------------------*/
 
 // * * * * * * * * * * * * * *  Constructor * * * * * * * * * * * * * * * //
-MESH::read_base::read_base(std::filesystem::path filePath) {
+MESH::read_base::read_base(std::filesystem::path filePath, bool verbose ) 
+:
+    _verbose(verbose)
+{
     // Open the file
-    std::cout << "filepath: " << std::filesystem::absolute(filePath) << " " << filePath << std::endl;
+    if (_verbose) std::cout << "filepath: " << std::filesystem::absolute(filePath) << " " << filePath << std::endl;
     _file.open(filePath);
     if (!_file.is_open())
     {
@@ -36,7 +39,8 @@ MESH::read_base::read_base(std::filesystem::path filePath) {
 }
 
 // * * * * * * * * * * * * * *  Destructor * * * * * * * * * * * * * * * //
-MESH::read_base::~read_base() {
+MESH::read_base::~read_base() 
+{
     _file.close();
 }
 
@@ -48,10 +52,11 @@ MESH::mesh MESH::read_base::get_mesh() {
     assert(!Mesh._elements.empty());
     assert(!Mesh._nodes.empty());
     assert(!Mesh._boundaries.empty());
+    assert(!Mesh._faceNormalDeltas.empty());
 
     // Return mesh
-    std::cout << "Mesh statistics: " << std::endl;
-    std::cout << Mesh << std::endl;
+    if (_verbose) std::cout << "Mesh statistics: " << std::endl;
+    if (_verbose) std::cout << Mesh << std::endl;
     return Mesh;
 }
 
@@ -153,6 +158,7 @@ void MESH::read_base::instantiateElements()
         if (Mesh._elements[c]->get_faces().size() == 0) {
 
             // Faces have not been assigned, make faces
+            // NOTE: face owner is defined in determineSubElements
             std::vector<face> faces = Mesh._elements[c]->determineSubElements();
 
             // Check if faces exist in map
@@ -162,8 +168,6 @@ void MESH::read_base::instantiateElements()
                     // Assign face order
                     faceOrder[faceID] = f.get_seed();
                     f.set_id(faceID);
-                    // Map element to face
-                    f.add_element( Mesh._elements[c] );
                     // Add face to faceMap (and add element to face)
                     faceMap[f.get_seed()] = std::make_shared<face>(f);
                     // Increment id for new element
@@ -173,7 +177,7 @@ void MESH::read_base::instantiateElements()
                 else
                 {
                     // Map element to face
-                    faceMap[f.get_seed()]->add_element( Mesh._elements[c] );
+                    faceMap[f.get_seed()]->set_neighbor( Mesh._elements[c] );
                 }
             }
         }
@@ -190,9 +194,7 @@ void MESH::read_base::instantiateElements()
         for (std::shared_ptr<element> e : Mesh._faces[idx]->get_elements()) {
             Mesh._elements[e->get_id()]->add_face( Mesh._faces[idx] );
         }
-
     }
-
 
     //=================================================================================================
     // Loop through boundaries and assign faces vector
@@ -217,7 +219,6 @@ void MESH::read_base::instantiateElements()
         }
     }
 
-
     // Now that faces have been assigned to elements, and boundary faces defined, initialize elements
     for (int e=0 ; e<Mesh._elements.size() ; e++) {
         Mesh._elements[e]->initializeExterior();
@@ -226,125 +227,9 @@ void MESH::read_base::instantiateElements()
 
     auto end = std::chrono::steady_clock::now();
     auto diff = end-start;
-    std::cout << "    Element Instantiation time: " << std::chrono::duration<double, std::milli>(diff).count() << " ms" << std::endl;
+    if (_verbose) std::cout << "    Element Instantiation time: " << std::chrono::duration<double, std::milli>(diff).count() << " ms" << std::endl;
 
 }
-
-/* vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv DEPRACATED: DELETE SOON vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
-// * * * * * * * * * * * * * *  instantiate Faces from elements * * * * * * * * * * * * * * * //
-void MESH::read_base::instantiateFaces()
-{
-    // Initialize some variables
-    std::string faceMapSeed;
-    std::unordered_map<int, std::string> faceOrder;
-    std::vector<face> efaces;
-    std::vector<face> nbfaces;
-    int id = 0;
-    int nbFaceID;
-    int nbFaceIdx;
-
-    // error message
-    std::ostringstream errorMsg;
-
-
-    // make map of hashes
-    std::unordered_map<std::string, MESH::face> faceMap;
-    auto start = std::chrono::steady_clock::now();
-    // Loop through elements
-    for (int e=0 ; e<_elements.size() ; e++) {
-        for (int f=0 ; f<_elements[e].get_faces().size() ; f++) {
-
-            faceMapSeed = _elements[e].get_faces()[f].get_seed();
-            // First instance of face
-            if ( faceMap.find(faceMapSeed) == faceMap.end() ) {
-                // Assign face order
-                faceOrder[id] = faceMapSeed;
-                // Assign ID to face
-                _elements[e].set_face_id(f,id);
-                // Add face to faceMap (and add element to face)
-                faceMap[faceMapSeed] = _elements[e].get_faces()[f];
-                faceMap[faceMapSeed].set_elements({_elements[e].get_id()});
-
-                // Increment id for new element
-                id++;
-            }
-            // Second instance of face
-            else
-            {
-                // set element face id, and add boundary element
-                _elements[e].set_face_id(f,faceMap[faceMapSeed].get_id());
-                nbFaceID = faceMap[faceMapSeed].get_elements()[0];
-                _elements[e].set_face_connection(f,nbFaceID);
-                // add element to face
-                faceMap[faceMapSeed].add_element(_elements[e].get_id());
-                
-                // Add this element to neighbor element's face
-                nbfaces = _elements[nbFaceID].get_faces();
-                nbFaceIdx = _elements[nbFaceID] == _elements[e].get_faces()[f];
-                if (nbFaceIdx == -1) {
-                    std::cerr << "ERROR: Hash Collision between elements " << e << " and " << nbFaceID << std::endl;
-                }
-                _elements[nbFaceID].set_face_connection(nbFaceIdx,_elements[e].get_id());
-                
-                // Calculate weighted distance between elements
-                _elements[e].calculateFaceDistanceWeight(_elements[nbFaceID]);
-            }
-        }
-    }
-
-    auto end1 = std::chrono::steady_clock::now();
-    auto diff1 = end1-start;
-    std::cout << "    internal face connectivity reading time: " << std::chrono::duration<double, std::milli>(diff1).count() << " ms" << std::endl;
-
-    // Loop though boundary conditions to assign faces
-    for (int b=0 ; b<_BCs.size() ; b++) {
-        for (int f=0 ; f<_BCs[b].get_faces().size() ; f++) {
-            faceMapSeed = _BCs[b].get_faces()[f].get_seed();
-
-            // Make sure an element has already been assigned to this face
-            if (!(faceMap[faceMapSeed].get_elements().size() > 0)) {
-                errorMsg << "ERROR: Boundary " << _BCs[b].get_name() << " is missing a connecting element on face " << f
-                    << std::endl << "    - check if face " << f << " is correctly assigned"
-                    << std::endl << "    - ensure there exists a cell that contains face " << f << "(i.e. contains the same nodes)" << std::endl;
-                std::cerr << errorMsg.str() << std::endl;
-                assert(false);
-            }   
-            
-            // Assign BC to face
-            faceMap[faceMapSeed].add_element(_BCs[b].get_id());
-
-            // Set face as a boundary face
-            faceMap[faceMapSeed].set_boundaryFace(true);
-
-            // Add boundary to element face
-            id = faceMap[faceMapSeed].get_id(); // id of this face
-
-            efaces = _elements[faceMap[faceMapSeed].get_elements()[0]].get_faces(); // faces of connected element
-            for (int ef=0 ; ef<efaces.size() ; ef++ ) {
-                if (efaces[ef].get_id() == id) {
-                    // add BC id to element
-                    _elements[faceMap[faceMapSeed].get_elements()[0]].set_face_connection(ef,_BCs[b].get_id());
-                    _elements[faceMap[faceMapSeed].get_elements()[0]].set_boundaryFace(ef);
-                }
-            }
-
-            // Map global face index to local boundary face index (and vice versa)
-            _BCs[b].map_global_and_local(faceMap[faceMapSeed].get_id(),f);
-        }
-    }
-
-    auto end = std::chrono::steady_clock::now();
-    auto diff = end-start;
-    std::cout << "    boundary face connectivity reading time: " << std::chrono::duration<double, std::milli>(diff).count() << " ms" << std::endl;
-
-    // Assign faces to vector
-    for (int idx=0 ; idx<faceOrder.size() ; idx++) {
-        _faces.push_back(faceMap[faceOrder[idx]]);
-    }
-    
-}
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ DEPRACATED: DELETE SOON ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ */
-
 
 // * * * * * * * * * * * * * *  Update Nodes * * * * * * * * * * * * * * * //
 void MESH::read_base::updateNodes()
@@ -374,6 +259,9 @@ void MESH::read_base::updateNodes()
     }
 
     auto end = std::chrono::steady_clock::now();
-    std::cout << "    node connectivity reading time: " << std::chrono::duration<double, std::milli>(end-start).count() << " ms" << std::endl;
+    if (_verbose) std::cout << "    node connectivity reading time: " << std::chrono::duration<double, std::milli>(end-start).count() << " ms" << std::endl;
 }
+
+
+
 

@@ -31,8 +31,7 @@ class read_base
 {
 public:
     // Constructor
-    read_base(std::filesystem::path filePath);
-
+    read_base(std::filesystem::path filePath, bool verbose=true );
 
     // Destructor
     ~read_base();
@@ -65,6 +64,8 @@ protected:
         int _nElements, _nNodes, _nBCs;
         // elements map
         mesh Mesh;
+        // option for verbose output
+        bool _verbose;
     
 };
 
