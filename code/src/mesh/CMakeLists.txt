@@ -24,7 +24,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include 
 )
 
-# Include dependencies only if boundary is built independently
+# Include dependencies only if meshReader is built independently
 if (CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     # Add dependencies as subdirectories
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../math ${CMAKE_BINARY_DIR}/math)
@@ -36,7 +36,7 @@ add_library(meshReader STATIC ${LIB_SOURCES})
 # Ensure any libraries linking to meshReader can see its headers
 target_include_directories(meshReader PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 
-# Link meshReader library with math and utilities libraries, public to ensure meshReader propagates math's include directories
+# Link meshReader library with math library, public to ensure meshReader propagates math's include directories
 target_link_libraries(meshReader PUBLIC math)
 
 # Optionally add the test target (if you are building tests)
